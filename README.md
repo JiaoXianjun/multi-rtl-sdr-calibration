@@ -35,18 +35,25 @@ Usage
 
 In matlab, you may receive and process UDP packets like this:
 
-	udp_obj = udp('127.0.0.1', 10000, 'LocalPort', 6666);
+	udp_obj0 = udp('127.0.0.1', 10000, 'LocalPort', 6666);
+	udp_obj1 = udp('127.0.0.1', 10000, 'LocalPort', 6667);
+
 	fread_len = 8192; % max allowed
-	set(udp_obj, 'InputBufferSize', fread_len);
-	set(udp_obj, 'Timeout', 1);
-	fopen(udp_obj);
+	set(udp_obj0, 'InputBufferSize', fread_len);
+	set(udp_obj0, 'Timeout', 1);
+	set(udp_obj1, 'InputBufferSize', fread_len);
+	set(udp_obj1, 'Timeout', 1);
+
+	fopen(udp_obj0);
+	fopen(udp_obj1);
 	while 1
-	    [a, real_count] = fread(udp_obj, fread_len, 'uint8');
-	    if real_count<fread_len
+	    [a0, real_count0] = fread(udp_obj0, fread_len, 'uint8');
+	    [a1, real_count1] = fread(udp_obj1, fread_len, 'uint8');
+	    if real_count0~=fread_len || real_count1~=fread_len
 	        continue;
 	    end
 	
-	    //process samples in varable "a"
+	    %process samples from two dongles in varable "a0" and "a1"
 	    ....
 	end
 
