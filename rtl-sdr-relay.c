@@ -38,7 +38,7 @@
 #include "rtl-sdr.h"
 
 #define MAX_NUM_PARA 7
-#define MAX_NUM_DEV 32
+#define MAX_NUM_DEV 8
 #define DEFAULT_FREQ 1090000000
 #define DEFAULT_GAIN 0
 #define DEFAULT_SAMPLE_RATE		2048000
@@ -333,14 +333,14 @@ void parse_arg(int argc, char **argv)
   {
     for ( j = 0; j < target_device_count; j++ )
     {
-      gain[j] = DEFAULT_GAIN;
+      gain[j] = DEFAULT_GAIN*10;
     }
   }
   else
   {
     for ( j = 0; j < num_val_set[i]; j++ )
     {
-      gain[j] = para_val_set[i][j];
+      gain[j] = para_val_set[i][j]*10;
     }
     for ( ; j < target_device_count; j++ )
     {
@@ -446,6 +446,7 @@ void parse_arg(int argc, char **argv)
   }
 
   // show parse results
+  printf("\n-----------------------------------------\n");
   printf("         Frequencies ");
   for ( i = 0; i < target_device_count; i++ )
   {
@@ -456,7 +457,7 @@ void parse_arg(int argc, char **argv)
   printf("               Gains ");
   for ( i = 0; i < target_device_count; i++ )
   {
-    printf("%13d ", gain[i]);
+    printf("%13d ", gain[i]/10);
   }
   printf("\n");
 
@@ -494,14 +495,16 @@ void parse_arg(int argc, char **argv)
     printf("%13d ", sendto_len[i]);
   }
   printf("\n");
+  printf("\n-----------------------------------------\n");
 }
 
 int main(int argc, char **argv)
 {
   const char *default_inet_addr = "127.0.0.1";
+  int i;
 	int n_read;
 	int r, opt;
-	uint8_t *buffer;
+	uint8_t *buffer[MAX_NUM_DEV];
 	int device_count;
 	char vendor[256], product[256], serial[256];
 
@@ -514,148 +517,119 @@ int main(int argc, char **argv)
 
 	parse_arg(argc, argv);
 
-//	buffer = malloc(out_block_size * sizeof(uint8_t));
+  for ( i = 0; i < target_device_count; i++ )
+  {
+    buffer[i] = malloc(out_block_size[i] * sizeof(uint8_t));
+  }
+
+	device_count = target_device_count;
+
+	fprintf(stderr, "Will proceed with %d device(s):\n", device_count);
+	for (i = 0; i < device_count; i++) {
+		rtlsdr_get_device_usb_strings(dev_index[i], vendor, product, serial);
+		fprintf(stderr, "  %d:  %s, %s, SN: %s\n", dev_index[i], vendor, product, serial);
+	}
+	fprintf(stderr, "\n");
+
+  for (i = 0; i < device_count; i++) {
+    fprintf(stderr, "Using device %d: %s\n",
+      dev_index[i], rtlsdr_get_device_name(dev_index[i]));
+  }
+
+//--------------------------------------------------
+  fd = socket(AF_INET,SOCK_DGRAM,0);
+  if(fd==-1)
+  {
+      perror("socket");
+      exit(-1);
+  }
+  fprintf(stderr, "create socket OK!\n");
+
+  //create an send address
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(udp_port[0]); // will be set runtimely in following program
+  addr.sin_addr.s_addr=inet_addr(default_inet_addr);
+//--------------------------------------------------
+
+  for (i = 0; i < device_count; i++) {
+    r = rtlsdr_open(&(dev[i]), dev_index[i]);
+    if (r < 0) {
+      fprintf(stderr, "Failed to open rtlsdr device #%d.\n", dev_index[i]);
+      exit(1);
+    }
+
+    /* Set the sample rate */
+    r = rtlsdr_set_sample_rate(dev[i], samp_rate[i]);
+    if (r < 0)
+      fprintf(stderr, "WARNING: Failed to set sample rate.\n");
+
+    /* Set the frequency */
+    r = rtlsdr_set_center_freq(dev[i], frequency[i]);
+    if (r < 0)
+      fprintf(stderr, "WARNING: Failed to set center freq.\n");
+    else
+      fprintf(stderr, "Tuned to %u Hz.\n", frequency[i]);
+
+    /* Set the gain */
+    if (0 == gain[i]) {
+       /* Enable automatic gain */
+      r = rtlsdr_set_tuner_gain_mode(dev[i], 0);
+      if (r < 0)
+        fprintf(stderr, "WARNING: Failed to enable automatic gain.\n");
+    } else {
+      /* Enable manual gain */
+      r = rtlsdr_set_tuner_gain_mode(dev[i], 1);
+      if (r < 0)
+        fprintf(stderr, "WARNING: Failed to enable manual gain.\n");
+
+      /* Set the tuner gain */
+      r = rtlsdr_set_tuner_gain(dev[i], gain[i]);
+      if (r < 0)
+        fprintf(stderr, "WARNING: Failed to set tuner gain.\n");
+      else
+        fprintf(stderr, "Tuner gain set to %f dB.\n", gain[i]/10.0);
+    }
+
+    /* Reset endpoint before we start reading from it (mandatory) */
+    r = rtlsdr_reset_buffer(dev[i]);
+    if (r < 0)
+      fprintf(stderr, "WARNING: Failed to reset buffers.\n");
+
+  }
+
+  fprintf(stderr, "Reading samples in sync mode...\n");
+
+//  while (!do_exit) {
+//    r = rtlsdr_read_sync(dev, buffer, out_block_size, &n_read);
+//    if (r < 0) {
+//      fprintf(stderr, "WARNING: sync read failed.\n");
+//      break;
+//    }
 //
-//	device_count = rtlsdr_get_device_count();
-//	if (!device_count) {
-//		fprintf(stderr, "No supported devices found.\n");
-//		exit(1);
-//	}
+//    if ((bytes_to_read > 0) && (bytes_to_read < (uint32_t)n_read)) {
+//      n_read = bytes_to_read;
+//      do_exit = 1;
+//    }
 //
-//	fprintf(stderr, "Found %d device(s):\n", device_count);
-//	for (i = 0; i < device_count; i++) {
-//		rtlsdr_get_device_usb_strings(i, vendor, product, serial);
-//		fprintf(stderr, "  %d:  %s, %s, SN: %s\n", i, vendor, product, serial);
-//	}
-//	fprintf(stderr, "\n");
+//    if ((uint32_t)n_read < out_block_size) {
+//      fprintf(stderr, "Short read, samples lost, exiting!\n");
+//      break;
+//    }
 //
-//	fprintf(stderr, "Using device %d: %s\n",
-//		dev_index, rtlsdr_get_device_name(dev_index));
-//
-////--------------------------------------------------
-//  fd = socket(AF_INET,SOCK_DGRAM,0);
-//  if(fd==-1)
-//  {
-//      perror("socket");
-//      exit(-1);
+//    if (bytes_to_read > 0)
+//      bytes_to_read -= n_read;
 //  }
-//  fprintf(stderr, "create socket OK!\n");
-//  //create an send address
-//  addr.sin_family = AF_INET;
-//  addr.sin_port = htons(udp_port);
-//  addr.sin_addr.s_addr=inet_addr(default_inet_addr);
-//  fprintf(stderr, "%s:%u\n", default_inet_addr, udp_port);
-////--------------------------------------------------
-//
-//	r = rtlsdr_open(&dev, dev_index);
-//	if (r < 0) {
-//		fprintf(stderr, "Failed to open rtlsdr device #%d.\n", dev_index);
-//		exit(1);
-//	}
-//#ifndef _WIN32
-//	sigact.sa_handler = sighandler;
-//	sigemptyset(&sigact.sa_mask);
-//	sigact.sa_flags = 0;
-//	sigaction(SIGINT, &sigact, NULL);
-//	sigaction(SIGTERM, &sigact, NULL);
-//	sigaction(SIGQUIT, &sigact, NULL);
-//	sigaction(SIGPIPE, &sigact, NULL);
-//#else
-//	SetConsoleCtrlHandler( (PHANDLER_ROUTINE) sighandler, TRUE );
-//#endif
-//	/* Set the sample rate */
-//	r = rtlsdr_set_sample_rate(dev, samp_rate);
-//	if (r < 0)
-//		fprintf(stderr, "WARNING: Failed to set sample rate.\n");
-//
-//	/* Set the frequency */
-//	r = rtlsdr_set_center_freq(dev, frequency);
-//	if (r < 0)
-//		fprintf(stderr, "WARNING: Failed to set center freq.\n");
-//	else
-//		fprintf(stderr, "Tuned to %u Hz.\n", frequency);
-//
-//	if (0 == gain) {
-//		 /* Enable automatic gain */
-//		r = rtlsdr_set_tuner_gain_mode(dev, 0);
-//		if (r < 0)
-//			fprintf(stderr, "WARNING: Failed to enable automatic gain.\n");
-//	} else {
-//		/* Enable manual gain */
-//		r = rtlsdr_set_tuner_gain_mode(dev, 1);
-//		if (r < 0)
-//			fprintf(stderr, "WARNING: Failed to enable manual gain.\n");
-//
-//		/* Set the tuner gain */
-//		r = rtlsdr_set_tuner_gain(dev, gain);
-//		if (r < 0)
-//			fprintf(stderr, "WARNING: Failed to set tuner gain.\n");
-//		else
-//			fprintf(stderr, "Tuner gain set to %f dB.\n", gain/10.0);
-//	}
-//
-//	if(strcmp(filename, "-") == 0) { /* Write samples to stdout */
-//		file = stdout;
-//#ifdef _WIN32
-//		_setmode(_fileno(stdin), _O_BINARY);
-//#endif
-//	} else {
-//		file = fopen(filename, "wb");
-//		if (!file) {
-//			fprintf(stderr, "Failed to open %s\n", filename);
-//			goto out;
-//		}
-//	}
-//
-//	/* Reset endpoint before we start reading from it (mandatory) */
-//	r = rtlsdr_reset_buffer(dev);
-//	if (r < 0)
-//		fprintf(stderr, "WARNING: Failed to reset buffers.\n");
-//
-//	if (sync_mode) {
-//		fprintf(stderr, "Reading samples in sync mode...\n");
-//		while (!do_exit) {
-//			r = rtlsdr_read_sync(dev, buffer, out_block_size, &n_read);
-//			if (r < 0) {
-//				fprintf(stderr, "WARNING: sync read failed.\n");
-//				break;
-//			}
-//
-//			if ((bytes_to_read > 0) && (bytes_to_read < (uint32_t)n_read)) {
-//				n_read = bytes_to_read;
-//				do_exit = 1;
-//			}
-//
-//			if (fwrite(buffer, 1, n_read, file) != (size_t)n_read) {
-//				fprintf(stderr, "Short write, samples lost, exiting!\n");
-//				break;
-//			}
-//
-//			if ((uint32_t)n_read < out_block_size) {
-//				fprintf(stderr, "Short read, samples lost, exiting!\n");
-//				break;
-//			}
-//
-//			if (bytes_to_read > 0)
-//				bytes_to_read -= n_read;
-//		}
-//	} else {
-//		fprintf(stderr, "Reading samples in async mode...\n");
-//		r = rtlsdr_read_async(dev, rtlsdr_callback, (void *)file,
-//				      DEFAULT_ASYNC_BUF_NUMBER, out_block_size);
-//	}
-//
-//	if (do_exit)
-//		fprintf(stderr, "\nUser cancel, exiting...\n");
-//	else
-//		fprintf(stderr, "\nLibrary error %d, exiting...\n", r);
-//
-//	if (file != stdout)
-//		fclose(file);
-//
-//	rtlsdr_close(dev);
-//	free (buffer);
-//	close(fd);
-//out:
-//	return r >= 0 ? r : -r;
+
+	if (do_exit)
+		fprintf(stderr, "\nUser cancel, exiting...\n");
+	else
+		fprintf(stderr, "\nLibrary error %d, exiting...\n", r);
+
+  for (i = 0; i < device_count; i++) {
+    rtlsdr_close(dev[i]);
+    free (buffer[i]);
+    close(fd);
+	}
+
+  return(-1);
 }
