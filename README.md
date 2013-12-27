@@ -25,7 +25,8 @@ Usage
 	-g: gain value. If not specified, maximum gain will be set as default.
 	-d: device IDs. If not specified, all detected dongles will be involved.
 	-p: UDP ports. If not specified, ports will be used begining with 6666, 
-	for example, 6666, 6667, 6668.... The number of ports must be equal to the number of dongles or the number of dongles counted from -d option.
+	for example, 6666, 6667, 6668.... The number of ports must be equal to the number of dongles or 
+	the number of dongles counted from -d option.
 	-b: buffer length for reading IQ from dongle. If not specified, default value is 262144.
 	-l: length of UDP packet. If not specified, default value is 32768.
 
