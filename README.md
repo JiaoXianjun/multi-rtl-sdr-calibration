@@ -35,8 +35,8 @@ Usage
 
 In matlab, you may receive and process UDP packets like this:
 
-	udp_obj0 = udp('127.0.0.1', 10000, 'LocalPort', 6666);
-	udp_obj1 = udp('127.0.0.1', 10000, 'LocalPort', 6667);
+	udp_obj0 = udp('127.0.0.1', 10000, 'LocalPort', 6666); % for dongle 0
+	udp_obj1 = udp('127.0.0.1', 10000, 'LocalPort', 6667); % for dongle 1
 
 	fread_len = 8192; % max allowed
 	set(udp_obj0, 'InputBufferSize', fread_len);
