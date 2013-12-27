@@ -1,6 +1,8 @@
 TODO:
 
 2012-12-27:
-1. Make the relay to not only localhost but also other connected computer via network.
-2. Would Async mode be better?
+-1: Test packets loss.
+ 0: Make/test it in Windows?
+ 1: Make the relay to not only localhost but also other connected computer via network?
+ 2: Would Async mode be better?
 

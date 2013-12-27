@@ -20,15 +20,18 @@ Type "make".
 
 Usage
 =======================
-	./rtl-sdr-relay -f 409987500 -g 30 -d 0 1 -p 6666 6667 -b 65536 -l 16384
-	-f: frequency in Hz. If not specified, 1090000000 will be set as default.
-	-g: gain value. If not specified, maximum gain will be set as default.
+	./rtl-sdr-relay -f 409987500 1090000000 -g 30 50 -s 2000000 1000000 -d 0 1 -p 6666 6667 -b 65536 131072 -l 16384 32768
+	-f: multi-frequencies for multi-dongles[Hz]. If not specified, 1090000000 will be set as default.
+	-g: multi-gains for multi-dongles[dB]. If not specified, automatic gain will be set as default.
+	-s: multi-sample-rates for multi-dongles[Hz]. If not specified, 2048000 will be set as default.
 	-d: device IDs. If not specified, all detected dongles will be involved.
-	-p: UDP ports. If not specified, ports will be used begining with 6666, 
-	for example, 6666, 6667, 6668.... The number of ports must be equal to the number of dongles or 
+	-p: UDP ports. If not specified, ports will be used begining with 6666,
+	for example, 6666, 6667, 6668.... The number of ports must be equal to the number of dongles or
 	the number of dongles counted from -d option.
-	-b: buffer length for reading IQ from dongle. If not specified, default value is 262144.
-	-l: length of UDP packet. If not specified, default value is 32768.
+	-b: multi-buffer-lengths for reading IQ from multi-dongles. If not specified, default value is 262144.
+	-l: multi-length-of-UDP-packets for multi-dongles. If not specified, default value is 32768.
+	NOTE: If only one value is given for specific parameter, the value will be used for multiple dongles.
+	Otherwise, all parameters should have the same number of values.
 
 	./rtl-sdr-relay
 	display help/usage
@@ -52,7 +55,7 @@ In matlab, you may receive and process UDP packets like this:
 	    if real_count0~=fread_len || real_count1~=fread_len
 	        continue;
 	    end
-	
+
 	    %process samples from two dongles in varable "a0" and "a1"
 	    ....
 	end
@@ -61,7 +64,7 @@ See detail script in recv_proc_udp.m
 
 Contributing
 =======================
-multi-rtl-sdr-udp-relay was written during the end of 2013 in my spare time. 
+multi-rtl-sdr-udp-relay was written during the end of 2013 in my spare time.
 
 You are welcome to send pull requests in order to improve the project.
 
