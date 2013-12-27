@@ -29,11 +29,11 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-//-----------------------
+#include <unistd.h>
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-//-----------------------
 
 #include "rtl-sdr.h"
 
@@ -49,21 +49,43 @@
 #define LEN_UDP_PACKET 32768
 #define DEFAULT_BEGIN_PORT 6666
 
+// parameters types definition
+#define DEV 1001
+#define PORT 1002
+#define FREQ 1003
+#define GAIN 1004
+#define RATE 1005
+#define BUF 1006
+#define LEN 1007
+
 static int do_exit = 0;
-static uint32_t bytes_to_read = 0;
 static rtlsdr_dev_t *dev[MAX_NUM_DEV] = { NULL };
 
-//---------------------------------------------
 int fd = 0;
-struct sockaddr_in addr = {0};
+struct sockaddr_in addr;
 uint32_t buf_offset = 0;
 uint32_t sendto_flag = 0;
 
-//---------------------------------------------
+int real_device_count = 0;
+int target_device_count = 0;
+
+uint32_t frequency[MAX_NUM_DEV] = { DEFAULT_FREQ };
+int gain[MAX_NUM_DEV] = {0};
+uint32_t samp_rate[MAX_NUM_DEV] = { DEFAULT_SAMPLE_RATE };
+uint32_t dev_index[MAX_NUM_DEV] = {0};
+uint32_t udp_port[MAX_NUM_DEV] = {0};
+uint32_t out_block_size[MAX_NUM_DEV] = { DEFAULT_BUF_LENGTH };
+uint32_t sendto_len[MAX_NUM_DEV] = { LEN_UDP_PACKET };
+
+static void sighandler(void)
+{
+	fprintf(stderr, "Signal caught, exiting!\n");
+	do_exit = 1;
+}
 
 void usage(void)
 {
-	fprintf(stderr,
+	printf(
 		"\nrtl-sdr-relay, a UDP I/Q relay for multiple RTL2832 based DVB-T receivers\n\n"
 		"example: ./rtl-sdr-relay -f 409987500 1090000000 -g 30 50 -s 2000000 1000000 -d 0 1 -p 6666 6667 -b 65536 131072 -l 16384 32768\n\n"
 		"Usage:\t-f: multi-frequencies for multi-dongles[Hz]. If not specified, 1090000000 will be set as default.\n"
@@ -74,6 +96,7 @@ void usage(void)
 		"\t    for example, 6666, 6667, 6668.... The number of ports must be equal to the number of dongles or\n"
 		"\t    the number of dongles counted from -d option.\n"
 		"\t-b: multi-buffer-lengths for reading IQ from multi-dongles. If not specified, default value is 262144.\n"
+		"\tPress Ctrl+C to exit.\n"
 		"\t-l: multi-length-of-UDP-packets for multi-dongles. If not specified, default value is 32768.\n\n");
 	exit(1);
 }
@@ -97,10 +120,10 @@ void usage(void)
 ////    {
 ////      sendto_len = ( (buf_offset+LEN_UDP_PACKET) <= len)? LEN_UDP_PACKET : (len-buf_offset);
 ////
-//////      fprintf(stderr, "%u %u %u\n", len, buf_offset, sendto_len);
+//////      printf( "%u %u %u\n", len, buf_offset, sendto_len);
 ////
 ////      if ( ( sendto_flag=sendto(fd, buf + buf_offset, sendto_len, 0, (struct sockaddr*)&addr,sizeof(addr)) ) != sendto_len) {
-////        fprintf(stderr, "Short write, samples lost, exiting! %u %u %u\n", sendto_len, sendto_flag, buf_offset);
+////        printf( "Short write, samples lost, exiting! %u %u %u\n", sendto_len, sendto_flag, buf_offset);
 ////        rtlsdr_cancel_async(dev);
 ////        break;
 ////      }
@@ -109,7 +132,7 @@ void usage(void)
 //
 //    sendto_len = LEN_UDP_PACKET;
 //    if ( ( sendto_flag=sendto(fd, buf, sendto_len, 0, (struct sockaddr*)&addr,sizeof(addr)) ) != sendto_len) {
-//      fprintf(stderr, "Short write, samples lost, exiting! %u %u\n", sendto_len, sendto_flag);
+//      printf( "Short write, samples lost, exiting! %u %u\n", sendto_len, sendto_flag);
 //      rtlsdr_cancel_async(dev);
 //    }
 //
@@ -118,33 +141,13 @@ void usage(void)
 //	}
 //}
 
-int real_device_count = 0;
-int target_device_count = 0;
-
-uint32_t frequency[MAX_NUM_DEV] = { DEFAULT_FREQ };
-int gain[MAX_NUM_DEV] = {0};
-uint32_t samp_rate[MAX_NUM_DEV] = { DEFAULT_SAMPLE_RATE };
-uint32_t dev_index[MAX_NUM_DEV] = {0};
-uint32_t udp_port[MAX_NUM_DEV] = {0};
-uint32_t out_block_size[MAX_NUM_DEV] = { DEFAULT_BUF_LENGTH };
-uint32_t sendto_len[MAX_NUM_DEV] = { LEN_UDP_PACKET };
-
-// TYPE definition
-#define DEV 1001
-#define PORT 1002
-#define FREQ 1003
-#define GAIN 1004
-#define RATE 1005
-#define BUF 1006
-#define LEN 1007
-
 void parse_arg(int argc, char **argv)
 {
   int i = 0;
   int j = 0;
   int para_idx_set[MAX_NUM_PARA+1] = {-1};
   int num_val_set[MAX_NUM_PARA+1] = {-1};
-  long int para_val_set[MAX_NUM_PARA+1][MAX_NUM_DEV] = {-1};
+  long int para_val_set[MAX_NUM_PARA+1][MAX_NUM_DEV];
   int para_type_set[MAX_NUM_PARA+1] = {-1};
 
   int para_count = 0;
@@ -394,12 +397,9 @@ void parse_arg(int argc, char **argv)
 
       if(out_block_size[j] < MINIMAL_BUF_LENGTH ||
          out_block_size[j] > MAXIMAL_BUF_LENGTH ){
-        fprintf(stderr,
-          "Output block size (rtl-sdr buffer size) wrong value, falling back to default\n");
-        fprintf(stderr,
-          "Minimal length: %u\n", MINIMAL_BUF_LENGTH);
-        fprintf(stderr,
-          "Maximal length: %u\n", MAXIMAL_BUF_LENGTH);
+        printf("Output block size (rtl-sdr buffer size) wrong value, falling back to default\n");
+        printf("Minimal length: %u\n", MINIMAL_BUF_LENGTH);
+        printf("Maximal length: %u\n", MAXIMAL_BUF_LENGTH);
         out_block_size[j] = DEFAULT_BUF_LENGTH;
       }
     }
@@ -430,18 +430,25 @@ void parse_arg(int argc, char **argv)
 
       if(sendto_len[j] <= 0 ||
          sendto_len[j] > LEN_UDP_PACKET ){
-        fprintf(stderr,
-          "UDP packet size wrong value, falling back to default\n");
-        fprintf(stderr,
-          "Minimal length: %u\n", 1);
-        fprintf(stderr,
-          "Maximal length: %u\n", LEN_UDP_PACKET);
+        printf("UDP packet size wrong value, falling back to default\n");
+        printf("Minimal length: %u\n", 1);
+        printf("Maximal length: %u\n", LEN_UDP_PACKET);
         sendto_len[j] = LEN_UDP_PACKET;
       }
     }
     for ( ; j < target_device_count; j++ )
     {
       sendto_len[j] = sendto_len[j-1];
+    }
+  }
+
+  for ( i = 0; i < target_device_count; i++ )
+  {
+    if ( out_block_size[i]%sendto_len[i] != 0 )
+    {
+      printf("rtl-sdr buffer size must be integer times of UDP packet length!\n");
+      printf("Actual: buffer size %d packet length %d\n", out_block_size[i], sendto_len[i]);
+      usage();
     }
   }
 
@@ -500,17 +507,18 @@ void parse_arg(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
+  struct sigaction sigact;
   const char *default_inet_addr = "127.0.0.1";
   int i;
-	int n_read;
-	int r, opt;
+	int n_read_set[MAX_NUM_DEV];
+	int r, r_set[MAX_NUM_DEV];
 	uint8_t *buffer[MAX_NUM_DEV];
 	int device_count;
 	char vendor[256], product[256], serial[256];
 
 	real_device_count = rtlsdr_get_device_count();
 	if (!real_device_count) {
-		fprintf(stderr, "No supported devices found.\n");
+		printf("No supported devices found.\n");
 		usage();
 		exit(1);
 	}
@@ -524,112 +532,142 @@ int main(int argc, char **argv)
 
 	device_count = target_device_count;
 
-	fprintf(stderr, "Will proceed with %d device(s):\n", device_count);
+	printf("Will proceed with %d device(s):\n", device_count);
 	for (i = 0; i < device_count; i++) {
 		rtlsdr_get_device_usb_strings(dev_index[i], vendor, product, serial);
-		fprintf(stderr, "  %d:  %s, %s, SN: %s\n", dev_index[i], vendor, product, serial);
+		printf("  %d:  %s, %s, SN: %s\n", dev_index[i], vendor, product, serial);
 	}
-	fprintf(stderr, "\n");
+	printf("\n");
 
   for (i = 0; i < device_count; i++) {
-    fprintf(stderr, "Using device %d: %s\n",
+    printf("Using device %d: %s\n",
       dev_index[i], rtlsdr_get_device_name(dev_index[i]));
   }
 
-//--------------------------------------------------
   fd = socket(AF_INET,SOCK_DGRAM,0);
   if(fd==-1)
   {
       perror("socket");
       exit(-1);
   }
-  fprintf(stderr, "create socket OK!\n");
+  printf("create socket OK!\n");
 
   //create an send address
   addr.sin_family = AF_INET;
   addr.sin_port = htons(udp_port[0]); // will be set runtimely in following program
   addr.sin_addr.s_addr=inet_addr(default_inet_addr);
-//--------------------------------------------------
+
+  sigact.sa_handler = (__sighandler_t)sighandler;
+	sigemptyset(&sigact.sa_mask);
+	sigact.sa_flags = 0;
+	sigaction(SIGINT, &sigact, NULL);
+	sigaction(SIGTERM, &sigact, NULL);
+	sigaction(SIGQUIT, &sigact, NULL);
+	sigaction(SIGPIPE, &sigact, NULL);
 
   for (i = 0; i < device_count; i++) {
     r = rtlsdr_open(&(dev[i]), dev_index[i]);
     if (r < 0) {
-      fprintf(stderr, "Failed to open rtlsdr device #%d.\n", dev_index[i]);
+      printf("Failed to open rtlsdr device #%d.\n", dev_index[i]);
       exit(1);
     }
 
     /* Set the sample rate */
     r = rtlsdr_set_sample_rate(dev[i], samp_rate[i]);
     if (r < 0)
-      fprintf(stderr, "WARNING: Failed to set sample rate.\n");
+      printf("WARNING: Failed to set sample rate.\n");
 
     /* Set the frequency */
     r = rtlsdr_set_center_freq(dev[i], frequency[i]);
     if (r < 0)
-      fprintf(stderr, "WARNING: Failed to set center freq.\n");
+      printf("WARNING: Failed to set center freq.\n");
     else
-      fprintf(stderr, "Tuned to %u Hz.\n", frequency[i]);
+      printf("Tuned to %u Hz.\n", frequency[i]);
 
     /* Set the gain */
     if (0 == gain[i]) {
        /* Enable automatic gain */
       r = rtlsdr_set_tuner_gain_mode(dev[i], 0);
       if (r < 0)
-        fprintf(stderr, "WARNING: Failed to enable automatic gain.\n");
+        printf("WARNING: Failed to enable automatic gain.\n");
     } else {
       /* Enable manual gain */
       r = rtlsdr_set_tuner_gain_mode(dev[i], 1);
       if (r < 0)
-        fprintf(stderr, "WARNING: Failed to enable manual gain.\n");
+        printf("WARNING: Failed to enable manual gain.\n");
 
       /* Set the tuner gain */
       r = rtlsdr_set_tuner_gain(dev[i], gain[i]);
       if (r < 0)
-        fprintf(stderr, "WARNING: Failed to set tuner gain.\n");
+        printf("WARNING: Failed to set tuner gain.\n");
       else
-        fprintf(stderr, "Tuner gain set to %f dB.\n", gain[i]/10.0);
+        printf("Tuner gain set to %f dB.\n", gain[i]/10.0);
     }
 
     /* Reset endpoint before we start reading from it (mandatory) */
     r = rtlsdr_reset_buffer(dev[i]);
     if (r < 0)
-      fprintf(stderr, "WARNING: Failed to reset buffers.\n");
+      printf("WARNING: Failed to reset buffers.\n");
 
   }
 
-  fprintf(stderr, "Reading samples in sync mode...\n");
+  printf("Reading samples in sync mode...\n");
+  printf("\nPress Ctrl+C to exit.\n");
 
-//  while (!do_exit) {
-//    r = rtlsdr_read_sync(dev, buffer, out_block_size, &n_read);
-//    if (r < 0) {
-//      fprintf(stderr, "WARNING: sync read failed.\n");
-//      break;
-//    }
-//
-//    if ((bytes_to_read > 0) && (bytes_to_read < (uint32_t)n_read)) {
-//      n_read = bytes_to_read;
-//      do_exit = 1;
-//    }
-//
-//    if ((uint32_t)n_read < out_block_size) {
-//      fprintf(stderr, "Short read, samples lost, exiting!\n");
-//      break;
-//    }
-//
-//    if (bytes_to_read > 0)
-//      bytes_to_read -= n_read;
-//  }
+  while (!do_exit) {
+    for (i = 0; i < device_count; i++) {
+      r_set[i] = rtlsdr_read_sync(dev[i], buffer[i], out_block_size[i], &(n_read_set[i]));
+    }
 
-	if (do_exit)
-		fprintf(stderr, "\nUser cancel, exiting...\n");
-	else
-		fprintf(stderr, "\nLibrary error %d, exiting...\n", r);
+    int r_flag = 0;
+    for (i = 0; i < device_count; i++) {
+      r_flag = r_flag + (r_set[i] < 0);
+    }
+    if (r_flag) {
+      printf("WARNING: sync read failed.\n");
+      break;
+    }
+
+    int n_read_flag = 0;
+    for (i = 0; i < device_count; i++) {
+      n_read_flag = n_read_flag + ((uint32_t)n_read_set[i] < out_block_size[i]);
+    }
+    if (n_read_flag) {
+      printf("Short read, samples lost, exiting!\n");
+      break;
+    }
+
+    int send_send_flag = 0;
+    for (i = 0; i < device_count; i++) {
+      addr.sin_port = htons(udp_port[i]);
+
+      uint32_t buf_position = 0;
+      int send_flag = 0;
+      for ( buf_position = 0; buf_position < out_block_size[i]; buf_position = buf_position + sendto_len[i]) {
+        uint32_t sendto_flag = sendto(fd, buffer[i]+buf_position, sendto_len[i], 0, (struct sockaddr*)&addr, sizeof(addr));
+        send_flag = send_flag + ( sendto_flag != sendto_len[i]);
+      }
+      send_send_flag = send_send_flag + send_flag;
+    }
+    if (send_send_flag) {
+      printf( "Short write, samples lost, exiting!\n");
+      break;
+    }
+  }
+
+  if (do_exit)
+    printf("\nwhile(1) loop exits by user. exiting...\n");
+  else
+    printf("\nwhile(1) loop exits abnormally. exiting...\n");
 
   for (i = 0; i < device_count; i++) {
     rtlsdr_close(dev[i]);
     free (buffer[i]);
-    close(fd);
 	}
 
-  return(-1);
+  close(fd);
+
+  printf("Done!\n");
+
+  return(0);
 }

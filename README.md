@@ -36,6 +36,8 @@ Usage
 	./rtl-sdr-relay
 	display help/usage
 
+	Press Ctrl+C to exit.
+
 In matlab, you may receive and process UDP packets like this:
 
 	udp_obj0 = udp('127.0.0.1', 10000, 'LocalPort', 6666); % for dongle 0
