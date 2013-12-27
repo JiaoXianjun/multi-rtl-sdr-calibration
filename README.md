@@ -1,7 +1,8 @@
 multi-rtl-sdr-udp-relay README
 
-By a enthusiast <putaoshu@msn.com> <putaoshu@gmail.com> of Software Defined Radio.
 =======================
+By a enthusiast <putaoshu@msn.com> <putaoshu@gmail.com> of Software Defined Radio.
+
 Relay multiple rtl-sdr dongles IQ samples out by UDP packets for easy real-time use in Matlab or other program.
 
 Different dongles IQ samples are sent through different UDP ports.
