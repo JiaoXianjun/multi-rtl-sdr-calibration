@@ -33,9 +33,6 @@ Usage
 	NOTE: If only one value is given for specific parameter, the value will be used for multiple dongles.
 	Otherwise, all parameters should have the same number of values.
 
-	./rtl-sdr-relay
-	display help/usage
-
 	Press Ctrl+C to exit.
 
 In matlab, you may receive and process UDP packets like this:

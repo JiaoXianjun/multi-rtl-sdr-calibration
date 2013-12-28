@@ -62,7 +62,7 @@ static int do_exit = 0;
 static rtlsdr_dev_t *dev[MAX_NUM_DEV] = { NULL };
 
 int fd = 0;
-struct sockaddr_in addr;
+struct sockaddr_in addr[MAX_NUM_DEV];
 uint32_t buf_offset = 0;
 uint32_t sendto_flag = 0;
 
@@ -552,10 +552,12 @@ int main(int argc, char **argv)
   }
   printf("create socket OK!\n");
 
-  //create an send address
-  addr.sin_family = AF_INET;
-  addr.sin_port = htons(udp_port[0]); // will be set runtimely in following program
-  addr.sin_addr.s_addr=inet_addr(default_inet_addr);
+  //create send addresses for multiple devices
+  for ( i = 0; i < target_device_count; i++ ){
+    addr[i].sin_family = AF_INET;
+    addr[i].sin_port = htons(udp_port[i]); // will be set runtimely in following program
+    addr[i].sin_addr.s_addr=inet_addr(default_inet_addr);
+  }
 
   sigact.sa_handler = (__sighandler_t)sighandler;
 	sigemptyset(&sigact.sa_mask);
@@ -639,12 +641,10 @@ int main(int argc, char **argv)
 
     int send_send_flag = 0;
     for (i = 0; i < device_count; i++) {
-      addr.sin_port = htons(udp_port[i]);
-
       uint32_t buf_position = 0;
       int send_flag = 0;
       for ( buf_position = 0; buf_position < out_block_size[i]; buf_position = buf_position + sendto_len[i]) {
-        uint32_t sendto_flag = sendto(fd, buffer[i]+buf_position, sendto_len[i], 0, (struct sockaddr*)&addr, sizeof(addr));
+        uint32_t sendto_flag = sendto(fd, buffer[i]+buf_position, sendto_len[i], 0, (struct sockaddr*)&(addr[i]), sizeof(addr[i]));
         send_flag = send_flag + ( sendto_flag != sendto_len[i]);
       }
       send_send_flag = send_send_flag + send_flag;
