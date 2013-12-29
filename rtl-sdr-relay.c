@@ -41,12 +41,16 @@
 #define MAX_NUM_DEV 8
 #define DEFAULT_FREQ 1090000000
 #define DEFAULT_GAIN 0
-#define DEFAULT_SAMPLE_RATE		2048000
-#define DEFAULT_BUF_LENGTH		(16 * 16384)
+//#define DEFAULT_SAMPLE_RATE		2048000
+#define DEFAULT_SAMPLE_RATE		2000000
 #define MINIMAL_BUF_LENGTH		512
-#define MAXIMAL_BUF_LENGTH		(256 * 16384)
+//#define MAXIMAL_BUF_LENGTH		(256 * 16384)
+#define MAXIMAL_BUF_LENGTH		8192
+//#define DEFAULT_BUF_LENGTH		(16 * 16384)
+#define DEFAULT_BUF_LENGTH		8192
 
-#define LEN_UDP_PACKET 32768
+//#define LEN_UDP_PACKET 32768
+#define LEN_UDP_PACKET 8192
 #define DEFAULT_BEGIN_PORT 6666
 
 // parameters types definition
@@ -636,7 +640,7 @@ int main(int argc, char **argv)
     }
     if (n_read_flag) {
       printf("Short read, samples lost, exiting!\n");
-      break;
+      //break;
     }
 
     int send_send_flag = 0;
@@ -651,7 +655,7 @@ int main(int argc, char **argv)
     }
     if (send_send_flag) {
       printf( "Short write, samples lost, exiting!\n");
-      break;
+      //break;
     }
   }
 

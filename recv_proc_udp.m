@@ -27,47 +27,68 @@ fopen(udp_obj0);
 fopen(udp_obj1);
 clf;
 close all;
-while 1
-    [a0, real_count0] = fread(udp_obj0, fread_len, 'uint8');
-    [a1, real_count1] = fread(udp_obj1, fread_len, 'uint8');
-    if real_count0~=fread_len || real_count1~=fread_len
-        disp('Number of read samples is not equal to expectation!');
-        continue;
-    end
+% while 1
+%     [a0, real_count0] = fread(udp_obj0, fread_len, 'uint8');
+%     [a1, real_count1] = fread(udp_obj1, fread_len, 'uint8');
+%     if real_count0~=fread_len || real_count1~=fread_len
+%         disp('Number of read samples is not equal to expectation!');
+%         continue;
+%     end
+% 
+%     % process samples from two dongles in varable "a0" and "a1"
+%     % convert unsigned IQ to normal/signed IQ
+%     a = a0;
+%     c = a(1:2:end) + 1i.*a(2:2:end);
+%     b = c- ( sum(c)./length(c) );
+%     a0 = b;
+%     
+%     a = a1;
+%     c = a(1:2:end) + 1i.*a(2:2:end);
+%     b = c- ( sum(c)./length(c) );
+%     a1 = b;
+%     
+%     % show
+%     subplot(2,2,1); plot(abs(a0));
+%     subplot(2,2,2); plot(angle(a0));
+%     
+%     subplot(2,2,3); plot(abs(a1));
+%     subplot(2,2,4); plot(angle(a1));
+% 
+%     drawnow;
+% end
 
-    % process samples from two dongles in varable "a0" and "a1"
-    % convert unsigned IQ to normal/signed IQ
-    a = a0;
-    c = a(1:2:end) + 1i.*a(2:2:end);
-    b = c- ( sum(c)./length(c) );
-    a0 = b;
-    
-    a = a1;
-    c = a(1:2:end) + 1i.*a(2:2:end);
-    b = c- ( sum(c)./length(c) );
-    a1 = b;
-    
-    % show
-    subplot(2,2,1); plot(abs(a0));
-    subplot(2,2,2); plot(angle(a0));
-    
-    subplot(2,2,3); plot(abs(a1));
-    subplot(2,2,4); plot(angle(a1));
-
-    drawnow;
+num_recv = 3;
+a0 = zeros(num_recv, fread_len);
+a1 = zeros(num_recv, fread_len);
+for i=1:num_recv
+    [a0(i,:), ~] = fread(udp_obj0, fread_len, 'uint8');
+    [a1(i,:), ~] = fread(udp_obj1, fread_len, 'uint8');
 end
 
-% num_recv = 128;
-% a0 = zeros(num_recv, fread_len);
-% a1 = zeros(num_recv, fread_len);
-% for i=1:num_recv
-%     [a0(i,:), ~] = fread(udp_obj0, fread_len, 'uint8');
-%     [a1(i,:), ~] = fread(udp_obj1, fread_len, 'uint8');
+a0 = a0';
+a0 = a0(:)';
+a1 = a1';
+a1 = a1(:)';
+
+a = a0;
+c = a(1:2:end) + 1i.*a(2:2:end);
+b = c- ( sum(c)./length(c) );
+a0 = b;
+
+a = a1;
+c = a(1:2:end) + 1i.*a(2:2:end);
+b = c- ( sum(c)./length(c) );
+a1 = b;
+    subplot(2,1,1); plot(abs(a0));
+    subplot(2,1,2); plot(abs(a1));
+
+
+% if ~isempty(dir('tmp.mat'))
+%     load tmp.mat;
+%     sp = 286156;
+%     ep = 286348;
+%     s = a0(sp:ep);
+%     figure;
+%     corr_val = conv(a1, conj(s(end:-1:1)));
+%     plot(abs(corr_val));
 % end
-% 
-% a0 = a0';
-% a0 = a0(:)';
-% a1 = a1';
-% a1 = a1(:)';
-% subplot(2,1,1); plot(a0);
-% subplot(2,1,2); plot(a1);
