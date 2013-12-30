@@ -2,7 +2,7 @@
 % Jiao Xianjun (putaoshu@msn.com; putaoshu@gmail.com)
 % A Example to receive, process, and show signal relaied from multiple dongles by rtl-sdr-relay
 % Please run the C program firstly as: ./rtl-sdr-relay -f 905000000 -s 3000000 -b 512 -l 512
-% receive at 905MHz at 3Msps sampling rate with rtl-sdr buffer size and UPD packet size both are 512 bytes.
+% receive at 905MHz GSM uplink bursts at 3Msps sampling rate with rtl-sdr buffer size and UPD packet size both are 512 bytes.
 % You should replace frequency 905MHz to your local frequency with strong power, such as GSM uplink or downlink.
 % Then run this script.
 

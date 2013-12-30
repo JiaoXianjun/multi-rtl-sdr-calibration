@@ -11,9 +11,13 @@ Currently, it is only tested in Ubuntu Linux (12.04 LTS), and only relay to loca
 
 Some codes are copied/modified from rtl-sdr: http://sdr.osmocom.org/trac/wiki/rtl-sdr.
 
-My initial purpose is performing in-fly calibration for multiple dongles to let them work together coherently.
+My initial purpose is performing in-fly calibration for multiple dongles according to some pre-known signals (GSM, ADS-B?) to let them work together coherently.
 
-Please join me if you also think this is a good idea. Please see TODO firstly.
+An ideal scheme may be that we should generate a very narrow band and very week signal in (or just located at the edge of) target working band of dongles, and perform the software in-fly calibration in background (or driver level). This would be user friendly.
+
+I know it is far from final state currently, and many things are not clear yet (See TODO).
+
+But please join me if you also think this is a good idea. Please see TODO firstly.
 
 Build
 =======================
@@ -30,7 +34,7 @@ Quick demo after you successfully make: (Plug two dongles to your computer!)
 
 Then run matlab script: recv_proc_udp.m to see bursts (roughly synchronized in timeline) received from two dongles.
 
-If you can't see obvious bursts, you should replace frequency 905MHz with your local frequency where there is strong signal,
+If you can't see obvious GSM bursts, you should replace frequency 905MHz with your local frequency where there is strong signal,
 such as GSM uplink, downlink or your signal generator. 905MHz just works fine in my location (China).
 
 Detail usage example/explanation:
