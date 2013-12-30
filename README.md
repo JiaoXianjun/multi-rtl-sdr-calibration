@@ -11,7 +11,7 @@ Currently, it is only tested in Ubuntu Linux (12.04 LTS), and only relay to loca
 
 Some codes are copied/modified from rtl-sdr: http://sdr.osmocom.org/trac/wiki/rtl-sdr.
 
-My initial purpose is performing in-fly calibraion for multiple dongles to let them work together coherently.
+My initial purpose is performing in-fly calibration for multiple dongles to let them work together coherently.
 
 Please join me if you also think this is a good idea. Please see TODO firstly.
 
