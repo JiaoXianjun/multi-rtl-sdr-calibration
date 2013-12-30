@@ -9,7 +9,11 @@ Different dongles IQ samples are sent through different UDP ports.
 
 Currently, it is only tested in Ubuntu Linux (12.04 LTS), and only relay to localhost/host-computer.
 
-Some codes are copied/modified from rtl-sdr: http://sdr.osmocom.org/trac/wiki/rtl-sdr
+Some codes are copied/modified from rtl-sdr: http://sdr.osmocom.org/trac/wiki/rtl-sdr.
+
+My initial purpose is performing in-fly calibraion for multiple dongles to let them work together coherently.
+
+Please join me if you also think this is a good idea. Please see TODO firstly.
 
 Build
 =======================
@@ -20,10 +24,17 @@ Type "make".
 
 Usage
 =======================
+Quick demo after you successfully make: (Plug two dongles to your computer!)
+  ./rtl-sdr-relay -f 905000000 -s 3000000 -b 512 -l 512
+Then run matlab script: recv_proc_udp.m to see bursts (roughly synchronized in timeline) received from two dongles.
+If you can't see obvious bursts, you should replace frequency 905MHz with your local frequency where there is strong signal,
+such as GSM uplink, downlink or your signal generator. 905MHz just works fine in my location (China).
+
+Details:
 	./rtl-sdr-relay -f 409987500 1090000000 -g 30 50 -s 2000000 1000000 -d 0 1 -p 6666 6667 -b 65536 131072 -l 16384 32768
 	-f: multi-frequencies for multi-dongles[Hz]. If not specified, 1090000000 will be set as default.
 	-g: multi-gains for multi-dongles[dB]. If not specified, automatic gain will be set as default.
-	-s: multi-sample-rates for multi-dongles[Hz]. If not specified, 2048000 will be set as default.
+	-s: multi-sample-rates for multi-dongles[Hz]. If not specified, 3000000 will be set as default.
 	-d: device IDs. If not specified, all detected dongles will be involved.
 	-p: UDP ports. If not specified, ports will be used begining with 6666,
 	for example, 6666, 6667, 6668.... The number of ports must be equal to the number of dongles or

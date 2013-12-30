@@ -42,18 +42,18 @@
 #define DEFAULT_FREQ 1090000000
 #define DEFAULT_GAIN 0
 //#define DEFAULT_SAMPLE_RATE		2048000
-#define DEFAULT_SAMPLE_RATE		2000000
+#define DEFAULT_SAMPLE_RATE		3000000
 #define MINIMAL_BUF_LENGTH		512
-//#define MAXIMAL_BUF_LENGTH		(256 * 16384)
-#define MAXIMAL_BUF_LENGTH		8192
-//#define DEFAULT_BUF_LENGTH		(16 * 16384)
-#define DEFAULT_BUF_LENGTH		8192
+#define MAXIMAL_BUF_LENGTH		(256 * 16384)
+//#define MAXIMAL_BUF_LENGTH		8192
+#define DEFAULT_BUF_LENGTH		(16 * 16384)
+//#define DEFAULT_BUF_LENGTH		8192
 
-//#define LEN_UDP_PACKET 32768
-#define LEN_UDP_PACKET 8192
+#define LEN_UDP_PACKET 32768
+//#define LEN_UDP_PACKET 8192
 #define DEFAULT_BEGIN_PORT 6666
 
-// parameters types definition
+// command line parameters types definitions
 #define DEV 1001
 #define PORT 1002
 #define FREQ 1003
@@ -67,7 +67,6 @@ static rtlsdr_dev_t *dev[MAX_NUM_DEV] = { NULL };
 
 int fd = 0;
 struct sockaddr_in addr[MAX_NUM_DEV];
-uint32_t buf_offset = 0;
 uint32_t sendto_flag = 0;
 
 int real_device_count = 0;
@@ -81,12 +80,14 @@ uint32_t udp_port[MAX_NUM_DEV] = {0};
 uint32_t out_block_size[MAX_NUM_DEV] = { DEFAULT_BUF_LENGTH };
 uint32_t sendto_len[MAX_NUM_DEV] = { LEN_UDP_PACKET };
 
+// catch user's Ctrl+C event
 static void sighandler(void)
 {
 	fprintf(stderr, "Signal caught, exiting!\n");
 	do_exit = 1;
 }
 
+// display usage information and then exit program.
 void usage(void)
 {
 	printf(
@@ -94,7 +95,7 @@ void usage(void)
 		"example: ./rtl-sdr-relay -f 409987500 1090000000 -g 30 50 -s 2000000 1000000 -d 0 1 -p 6666 6667 -b 65536 131072 -l 16384 32768\n\n"
 		"Usage:\t-f: multi-frequencies for multi-dongles[Hz]. If not specified, 1090000000 will be set as default.\n"
 		"\t-g: multi-gains for multi-dongles[dB]. If not specified, automatic gain will be set as default.\n"
-		"\t-s: multi-sample-rates for multi-dongles[Hz]. If not specified, 2048000 will be set as default.\n"
+		"\t-s: multi-sample-rates for multi-dongles[Hz]. If not specified, 3000000 will be set as default.\n"
 		"\t-d: device IDs. If not specified, all detected dongles will be involved.\n"
 		"\t-p: UDP ports. If not specified, ports will be used begining with 6666,\n"
 		"\t    for example, 6666, 6667, 6668.... The number of ports must be equal to the number of dongles or\n"
@@ -105,46 +106,7 @@ void usage(void)
 	exit(1);
 }
 
-//static void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx)
-//{
-//	if (ctx) {
-//		if (do_exit)
-//			return;
-//
-//		if ((bytes_to_read > 0) && (bytes_to_read < len)) {
-//			len = bytes_to_read;
-//			do_exit = 1;
-//			rtlsdr_cancel_async(dev);
-//		}
-//
-////		if (fwrite(buf, 1, len, (FILE*)ctx) != len) {
-//
-////    buf_offset=0;
-////    while (buf_offset<len) // len always is 262144
-////    {
-////      sendto_len = ( (buf_offset+LEN_UDP_PACKET) <= len)? LEN_UDP_PACKET : (len-buf_offset);
-////
-//////      printf( "%u %u %u\n", len, buf_offset, sendto_len);
-////
-////      if ( ( sendto_flag=sendto(fd, buf + buf_offset, sendto_len, 0, (struct sockaddr*)&addr,sizeof(addr)) ) != sendto_len) {
-////        printf( "Short write, samples lost, exiting! %u %u %u\n", sendto_len, sendto_flag, buf_offset);
-////        rtlsdr_cancel_async(dev);
-////        break;
-////      }
-////      buf_offset = buf_offset + sendto_len;
-////    }
-//
-//    sendto_len = LEN_UDP_PACKET;
-//    if ( ( sendto_flag=sendto(fd, buf, sendto_len, 0, (struct sockaddr*)&addr,sizeof(addr)) ) != sendto_len) {
-//      printf( "Short write, samples lost, exiting! %u %u\n", sendto_len, sendto_flag);
-//      rtlsdr_cancel_async(dev);
-//    }
-//
-//		if (bytes_to_read > 0)
-//			bytes_to_read -= len;
-//	}
-//}
-
+// fill frequency, gain, samp_rate, dev_index, udp_port, out_block_size, sendto_len by parsing command line parameters
 void parse_arg(int argc, char **argv)
 {
   int i = 0;
@@ -520,7 +482,7 @@ int main(int argc, char **argv)
 	int device_count;
 	char vendor[256], product[256], serial[256];
 
-	real_device_count = rtlsdr_get_device_count();
+	real_device_count = rtlsdr_get_device_count(); // real_device_count will be used in parse_arg()
 	if (!real_device_count) {
 		printf("No supported devices found.\n");
 		usage();
@@ -534,7 +496,7 @@ int main(int argc, char **argv)
     buffer[i] = malloc(out_block_size[i] * sizeof(uint8_t));
   }
 
-	device_count = target_device_count;
+	device_count = target_device_count; // get actual number of dongles we want to use
 
 	printf("Will proceed with %d device(s):\n", device_count);
 	for (i = 0; i < device_count; i++) {
@@ -559,7 +521,7 @@ int main(int argc, char **argv)
   //create send addresses for multiple devices
   for ( i = 0; i < target_device_count; i++ ){
     addr[i].sin_family = AF_INET;
-    addr[i].sin_port = htons(udp_port[i]); // will be set runtimely in following program
+    addr[i].sin_port = htons(udp_port[i]);
     addr[i].sin_addr.s_addr=inet_addr(default_inet_addr);
   }
 
@@ -571,6 +533,7 @@ int main(int argc, char **argv)
 	sigaction(SIGQUIT, &sigact, NULL);
 	sigaction(SIGPIPE, &sigact, NULL);
 
+  // open and set multiple dongles
   for (i = 0; i < device_count; i++) {
     r = rtlsdr_open(&(dev[i]), dev_index[i]);
     if (r < 0) {
@@ -621,10 +584,12 @@ int main(int argc, char **argv)
   printf("\nPress Ctrl+C to exit.\n");
 
   while (!do_exit) {
+    // read multiple dongles I&Q data into multiple buffers
     for (i = 0; i < device_count; i++) {
       r_set[i] = rtlsdr_read_sync(dev[i], buffer[i], out_block_size[i], &(n_read_set[i]));
     }
 
+    // check if read operation is normal
     int r_flag = 0;
     for (i = 0; i < device_count; i++) {
       r_flag = r_flag + (r_set[i] < 0);
@@ -634,6 +599,7 @@ int main(int argc, char **argv)
       break;
     }
 
+    // check if read operation is normal
     int n_read_flag = 0;
     for (i = 0; i < device_count; i++) {
       n_read_flag = n_read_flag + ((uint32_t)n_read_set[i] < out_block_size[i]);
@@ -643,16 +609,19 @@ int main(int argc, char **argv)
       //break;
     }
 
+    // send different buffers data through different UDP ports to localhost
     int send_send_flag = 0;
     for (i = 0; i < device_count; i++) {
       uint32_t buf_position = 0;
       int send_flag = 0;
+      // because buffer length is bigger than UDP packet length, the data from one buffer will be sent by multiple times.
       for ( buf_position = 0; buf_position < out_block_size[i]; buf_position = buf_position + sendto_len[i]) {
         uint32_t sendto_flag = sendto(fd, buffer[i]+buf_position, sendto_len[i], 0, (struct sockaddr*)&(addr[i]), sizeof(addr[i]));
         send_flag = send_flag + ( sendto_flag != sendto_len[i]);
       }
       send_send_flag = send_send_flag + send_flag;
     }
+    // check if send operation is normal
     if (send_send_flag) {
       printf( "Short write, samples lost, exiting!\n");
       //break;

@@ -1,8 +1,10 @@
 TODO:
 
-2012-12-27:
--1: Make/test it in Windows?
- 0: Test packets loss.
+-1: Make/test it in Windows? Then we would have more potential developers?
+ 0: Test packets/signal loss. (Perhaps this can be caused by not-in-time read from rtl-sdr driver).
  1: Make the relay to not only localhost but also other connected computer via network?
- 2: Would Async mode be better?
+ 2: Would Async mode rtl-sdr read be better than Sync mode?
+ 3: Make bi-directional UDP link to let C program accept Matlab's control?
+ 4: In-fly multi-dongles calibration algorithm. (Which signal is good candidate for this? GSM? 1090MHz ADS-B?)
+ 5: Any others?
 
