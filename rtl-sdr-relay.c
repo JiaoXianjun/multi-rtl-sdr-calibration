@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -52,6 +53,7 @@
 #define LEN_UDP_PACKET 32768
 //#define LEN_UDP_PACKET 8192
 #define DEFAULT_BEGIN_PORT 6666
+#define DEFAULT_LOCAL_PORT 13485
 
 // command line parameters types definitions
 #define DEV 1001
@@ -66,7 +68,8 @@ static int do_exit = 0;
 static rtlsdr_dev_t *dev[MAX_NUM_DEV] = { NULL };
 
 int fd = 0;
-struct sockaddr_in addr[MAX_NUM_DEV];
+struct sockaddr_in remote_addr[MAX_NUM_DEV];
+struct sockaddr_in local_addr;
 uint32_t sendto_flag = 0;
 
 int real_device_count = 0;
@@ -510,20 +513,39 @@ int main(int argc, char **argv)
       dev_index[i], rtlsdr_get_device_name(dev_index[i]));
   }
 
+  // create socket for UDP
   fd = socket(AF_INET,SOCK_DGRAM,0);
   if(fd==-1)
   {
       perror("socket");
       exit(-1);
   }
+
+  // set socket to non blocking mode to ensure UDP recvfrom won't affect performance.
+  int nFlags = fcntl(fd, F_GETFL, 0);
+  nFlags |= O_NONBLOCK;
+  if (fcntl(fd, F_SETFL, nFlags) == -1)
+  {
+    perror("Set socket to non blocking.");
+    exit(-1);
+  }
   printf("create socket OK!\n");
 
   //create send addresses for multiple devices
   for ( i = 0; i < target_device_count; i++ ){
-    addr[i].sin_family = AF_INET;
-    addr[i].sin_port = htons(udp_port[i]);
-    addr[i].sin_addr.s_addr=inet_addr(default_inet_addr);
+    remote_addr[i].sin_family = AF_INET;
+    remote_addr[i].sin_port = htons(udp_port[i]);
+    remote_addr[i].sin_addr.s_addr=inet_addr(default_inet_addr);
   }
+  local_addr.sin_family = AF_INET;
+  local_addr.sin_port = htons( DEFAULT_LOCAL_PORT );
+  local_addr.sin_addr.s_addr=inet_addr(default_inet_addr);
+
+  if (bind(fd, (struct sockaddr *)&local_addr, sizeof(local_addr)) < 0) {
+    perror("bind failed");
+    exit(-1);
+  }
+  printf("Bind socket to local_addr successfully!\n");
 
   sigact.sa_handler = (__sighandler_t)sighandler;
 	sigemptyset(&sigact.sa_mask);
@@ -583,7 +605,29 @@ int main(int argc, char **argv)
   printf("Reading samples in sync mode...\n");
   printf("\nPress Ctrl+C to exit.\n");
 
+  socklen_t addrlen = sizeof(remote_addr[0]);
   while (!do_exit) {
+    // receive frequency value from remote and set to all dongles
+    int recv_val = 0;
+    int recvlen = recvfrom(fd, &recv_val, sizeof(int), 0, (struct sockaddr*)&(remote_addr[0]), &addrlen);
+    if ( recvlen == sizeof(int) )
+    {
+      recv_val = ntohl(recv_val);
+      /* Set the frequency */
+      for (i = 0; i < device_count; i++) {
+        frequency[i] = recv_val;
+        r = rtlsdr_set_center_freq(dev[i], frequency[i]);
+        if (r < 0)
+          printf("WARNING: Failed to set center freq. Device %d\n", i);
+        else
+          printf("Tuned to %u Hz. Device %d\n", frequency[i], i);
+
+        r = rtlsdr_reset_buffer(dev[i]);
+        if (r < 0)
+          printf("WARNING: Failed to reset buffers.\n");
+      }
+    }
+
     // read multiple dongles I&Q data into multiple buffers
     for (i = 0; i < device_count; i++) {
       r_set[i] = rtlsdr_read_sync(dev[i], buffer[i], out_block_size[i], &(n_read_set[i]));
@@ -616,7 +660,7 @@ int main(int argc, char **argv)
       int send_flag = 0;
       // because buffer length is bigger than UDP packet length, the data from one buffer will be sent by multiple times.
       for ( buf_position = 0; buf_position < out_block_size[i]; buf_position = buf_position + sendto_len[i]) {
-        uint32_t sendto_flag = sendto(fd, buffer[i]+buf_position, sendto_len[i], 0, (struct sockaddr*)&(addr[i]), sizeof(addr[i]));
+        uint32_t sendto_flag = sendto(fd, buffer[i]+buf_position, sendto_len[i], 0, (struct sockaddr*)&(remote_addr[i]), sizeof(remote_addr[i]));
         send_flag = send_flag + ( sendto_flag != sendto_len[i]);
       }
       send_send_flag = send_send_flag + send_flag;

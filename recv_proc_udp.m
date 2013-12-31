@@ -18,8 +18,8 @@ if ~isempty(who('udp_obj1'))
     clear udp_obj1;
 end
 
-udp_obj0 = udp('127.0.0.1', 10000, 'LocalPort', 6666); % for dongle 0
-udp_obj1 = udp('127.0.0.1', 10000, 'LocalPort', 6667); % for dongle 1
+udp_obj0 = udp('127.0.0.1', 13485, 'LocalPort', 6666); % for dongle 0
+udp_obj1 = udp('127.0.0.1', 13485, 'LocalPort', 6667); % for dongle 1
 
 % fread_len = 8192; % max allowed
 fread_len = 512;
@@ -65,33 +65,33 @@ while 1
     drawnow;
 end
 
-num_recv = 30;
-a0 = zeros(num_recv, fread_len);
-a1 = zeros(num_recv, fread_len);
-for i=1:num_recv
-    [a0(i,:), x] = fread(udp_obj0, fread_len, 'uint8');
-    [a1(i,:), x] = fread(udp_obj1, fread_len, 'uint8');
-end
-
-
-a1 = a1';
-a1 = a1(:)';
-
-a = a0;
-c = a(1:2:end) + 1i.*a(2:2:end);
-b = c- ( sum(c)./length(c) );
-a0 = b;
-
-a = a1;
-c = a(1:2:end) + 1i.*a(2:2:end);
-b = c- ( sum(c)./length(c) );
-a1 = b;
-%     subplot(2,1,1); plot(abs(a0));
-%     subplot(2,1,2); plot(abs(a1));
-
-plot(abs(a0)); hold on;
-plot(abs(a1), 'r');
-legend('dongle 0', 'dongle 1');
+% num_recv = 30;
+% a0 = zeros(num_recv, fread_len);
+% a1 = zeros(num_recv, fread_len);
+% for i=1:num_recv
+%     [a0(i,:), x] = fread(udp_obj0, fread_len, 'uint8');
+%     [a1(i,:), x] = fread(udp_obj1, fread_len, 'uint8');
+% end
+% 
+% 
+% a1 = a1';
+% a1 = a1(:)';
+% 
+% a = a0;
+% c = a(1:2:end) + 1i.*a(2:2:end);
+% b = c- ( sum(c)./length(c) );
+% a0 = b;
+% 
+% a = a1;
+% c = a(1:2:end) + 1i.*a(2:2:end);
+% b = c- ( sum(c)./length(c) );
+% a1 = b;
+% %     subplot(2,1,1); plot(abs(a0));
+% %     subplot(2,1,2); plot(abs(a1));
+% 
+% plot(abs(a0)); hold on;
+% plot(abs(a1), 'r');
+% legend('dongle 0', 'dongle 1');
 
 % if ~isempty(dir('tmp.mat'))
 %     load tmp.mat;
