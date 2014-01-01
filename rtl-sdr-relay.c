@@ -38,7 +38,7 @@
 
 #include "rtl-sdr.h"
 
-#define VERBOSE_UDP_SET_INFO
+//#define VERBOSE_UDP_SET_INFO
 
 #ifdef VERBOSE_UDP_SET_INFO
   #define SHOW_UDP_RECV(CODE) CODE
@@ -51,7 +51,7 @@
 #define DEFAULT_FREQ 1090000000
 #define DEFAULT_GAIN 0
 //#define DEFAULT_SAMPLE_RATE		2048000
-#define DEFAULT_SAMPLE_RATE		3000000
+#define DEFAULT_SAMPLE_RATE		1000000
 #define MINIMAL_BUF_LENGTH		512
 #define MAXIMAL_BUF_LENGTH		(256 * 16384)
 //#define MAXIMAL_BUF_LENGTH		8192
@@ -106,7 +106,7 @@ void usage(void)
 		"example: ./rtl-sdr-relay -f 409987500 1090000000 -g 30 50 -s 2000000 1000000 -d 0 1 -p 6666 6667 -b 65536 131072 -l 16384 32768\n\n"
 		"Usage:\t-f: multi-frequencies for multi-dongles[Hz]. If not specified, 1090000000 will be set as default.\n"
 		"\t-g: multi-gains for multi-dongles[dB]. If not specified, automatic gain will be set as default.\n"
-		"\t-s: multi-sample-rates for multi-dongles[Hz]. If not specified, 3000000 will be set as default.\n"
+		"\t-s: multi-sample-rates for multi-dongles[Hz]. If not specified, 1000000 will be set as default.\n"
 		"\t-d: device IDs. If not specified, all detected dongles will be involved.\n"
 		"\t-p: UDP ports. If not specified, ports will be used begining with 6666,\n"
 		"\t    for example, 6666, 6667, 6668.... The number of ports must be equal to the number of dongles or\n"

@@ -2,7 +2,7 @@
 % function scan_band_power_spectrum(start_freq, end_freq, freq_step, sample_rate, observe_time)
 % all parameters are in Hz or Second.
 % If you want to inspect power spectrum in GSM 900 downlink band,
-% run command line first: ./rtl-sdr-relay -f 905000000 -s 400000 -b 512 -l 512
+% run command line first: ./rtl-sdr-relay -f 905000000 -s 100000 -b 512 -l 512
 % Set all parameters like:
 
 start_freq = 935e6; % P GSM
@@ -50,7 +50,7 @@ power_spectrum0 = inf.*ones(1, length(start_freq:freq_step:end_freq));
 power_spectrum1 = inf.*ones(1, length(start_freq:freq_step:end_freq));
 idx = 1;
 for freq = start_freq:freq_step:end_freq
-    fwrite(udp_obj0, int32([freq, 0, sample_rate]), 'int32');
+    fwrite(udp_obj0, int32(round([freq, 0, sample_rate])), 'int32');
     pause(0.1);
     a0 = inf.*ones(num_frame, fread_len);
     a1 = inf.*ones(num_frame, fread_len);

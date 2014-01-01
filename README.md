@@ -32,7 +32,7 @@ Usage
 =======================
 Quick demo after you successfully make: (Plug two dongles to your computer!)
 
-  ./rtl-sdr-relay -f 905000000 -s 3000000 -b 512 -l 512
+  ./rtl-sdr-relay -f 905000000 -s 1000000 -b 512 -l 512
 
 Then run matlab script: recv_proc_udp.m to see bursts (roughly synchronized in timeline) received from two dongles.
 
@@ -44,7 +44,7 @@ Detail usage example/explanation:
 	./rtl-sdr-relay -f 409987500 1090000000 -g 30 50 -s 2000000 1000000 -d 0 1 -p 6666 6667 -b 65536 131072 -l 16384 32768
 	-f: multi-frequencies for multi-dongles[Hz]. If not specified, 1090000000 will be set as default.
 	-g: multi-gains for multi-dongles[dB]. If not specified, automatic gain will be set as default.
-	-s: multi-sample-rates for multi-dongles[Hz]. If not specified, 3000000 will be set as default.
+	-s: multi-sample-rates for multi-dongles[Hz]. If not specified, 1000000 will be set as default.
 	-d: device IDs. If not specified, all detected dongles will be involved.
 	-p: UDP ports. If not specified, ports will be used begining with 6666,
 	for example, 6666, 6667, 6668.... The number of ports must be equal to the number of dongles or
@@ -84,11 +84,11 @@ See detail script recv_proc_udp.m
 
 In matlab, you may send UDP packet to rtl-sdr-relay like this (Assume that there are two dongles):
 
-  fwrite(udp_obj0, int32([freq, gain, samp_rate]), 'int32');
+  fwrite(udp_obj0, int32(round([freq, gain, samp_rate])), 'int32');
 
 set the same frequency, gain and sampling rate parameters to two dongles.
 
-  fwrite(udp_obj0, int32([freq0, gain0, samp_rate0, freq1, gain1, samp_rate1]), 'int32');
+  fwrite(udp_obj0, int32(round([freq0, gain0, samp_rate0, freq1, gain1, samp_rate1])), 'int32');
 
 set two sets of parameters to two dongles respectively.
 
