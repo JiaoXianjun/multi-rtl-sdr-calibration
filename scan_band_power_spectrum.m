@@ -78,6 +78,10 @@ for freq = start_freq:freq_step:end_freq
     power_spectrum1(idx) = 10*log10(mean(abs(s1).^2));
     idx = idx + 1;
     
+    if mod(idx, 50) == 0
+        disp(freq);
+    end
+    
 %     % show manitude of signlas from two dongles
 %     subplot(2,1,1); plot(abs(s0));
 %     subplot(2,1,2); plot(abs(s1));
