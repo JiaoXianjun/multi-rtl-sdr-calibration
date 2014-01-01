@@ -1,4 +1,4 @@
-CFLAGS=-O2 -g -Wall -W `pkg-config --cflags librtlsdr`
+CFLAGS=-O3 -g -Wall -W `pkg-config --cflags librtlsdr`
 LIBS=`pkg-config --libs librtlsdr` -lpthread -lm
 CC=gcc
 PROGNAME=rtl-sdr-relay

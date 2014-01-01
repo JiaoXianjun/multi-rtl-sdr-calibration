@@ -38,8 +38,16 @@
 
 #include "rtl-sdr.h"
 
+#define VERBOSE_UDP_SET_INFO
+
+#ifdef VERBOSE_UDP_SET_INFO
+  #define SHOW_UDP_RECV(CODE) CODE
+#else
+  #define SHOW_UDP_RECV(CODE)
+#endif
+
 #define MAX_NUM_PARA 7
-#define MAX_NUM_DEV 8
+#define MAX_NUM_DEV 4
 #define DEFAULT_FREQ 1090000000
 #define DEFAULT_GAIN 0
 //#define DEFAULT_SAMPLE_RATE		2048000
@@ -104,8 +112,9 @@ void usage(void)
 		"\t    for example, 6666, 6667, 6668.... The number of ports must be equal to the number of dongles or\n"
 		"\t    the number of dongles counted from -d option.\n"
 		"\t-b: multi-buffer-lengths for reading IQ from multi-dongles. If not specified, default value is 262144.\n"
-		"\tPress Ctrl+C to exit.\n"
-		"\t-l: multi-length-of-UDP-packets for multi-dongles. If not specified, default value is 32768.\n\n");
+		"\t-l: multi-length-of-UDP-packets for multi-dongles. If not specified, default value is 32768.\n"
+		"\tSome parameters can be set by receiving UDP instruction packet. See README.\n"
+		"\n\tPress Ctrl+C to exit the relay program\n\n");
 	exit(1);
 }
 
@@ -566,39 +575,43 @@ int main(int argc, char **argv)
     /* Set the sample rate */
     r = rtlsdr_set_sample_rate(dev[i], samp_rate[i]);
     if (r < 0)
-      printf("WARNING: Failed to set sample rate.\n");
+      printf("WARNING: Failed to set sample rate. Device %d\n", i);
+    else
+      printf("Sampling rate set to %d Hz. Device %d\n", samp_rate[i], i);
 
     /* Set the frequency */
     r = rtlsdr_set_center_freq(dev[i], frequency[i]);
     if (r < 0)
-      printf("WARNING: Failed to set center freq.\n");
+      printf("WARNING: Failed to set center freq. Device %d\n", i);
     else
-      printf("Tuned to %u Hz.\n", frequency[i]);
+      printf("Tuned to %u Hz. Device %d\n", frequency[i], i);
 
     /* Set the gain */
     if (0 == gain[i]) {
        /* Enable automatic gain */
       r = rtlsdr_set_tuner_gain_mode(dev[i], 0);
       if (r < 0)
-        printf("WARNING: Failed to enable automatic gain.\n");
+        printf("WARNING: Failed to enable automatic gain. Device %d\n", i);
+      else
+        printf("Automatic gain. Device %d\n", i);
     } else {
       /* Enable manual gain */
       r = rtlsdr_set_tuner_gain_mode(dev[i], 1);
       if (r < 0)
-        printf("WARNING: Failed to enable manual gain.\n");
+        printf("WARNING: Failed to enable manual gain. Device %d\n", i);
 
       /* Set the tuner gain */
       r = rtlsdr_set_tuner_gain(dev[i], gain[i]);
       if (r < 0)
-        printf("WARNING: Failed to set tuner gain.\n");
+        printf("WARNING: Failed to set tuner gain. Device %d\n", i);
       else
-        printf("Tuner gain set to %f dB.\n", gain[i]/10.0);
+        printf("Tuner gain set to %f dB. Device %d\n", gain[i]/10.0, i);
     }
 
     /* Reset endpoint before we start reading from it (mandatory) */
     r = rtlsdr_reset_buffer(dev[i]);
     if (r < 0)
-      printf("WARNING: Failed to reset buffers.\n");
+      printf("WARNING: Failed to reset buffers. Device %d\n", i);
 
   }
 
@@ -606,25 +619,84 @@ int main(int argc, char **argv)
   printf("\nPress Ctrl+C to exit.\n");
 
   socklen_t addrlen = sizeof(remote_addr[0]);
+
+  // array to store received UPD config packet
+  // 3 stands for frequency gain samp_rate
+  int recv_val[3*MAX_NUM_DEV] = { 0 };
+
   while (!do_exit) {
-    // receive frequency value from remote and set to all dongles
-    int recv_val = 0;
-    int recvlen = recvfrom(fd, &recv_val, sizeof(int), 0, (struct sockaddr*)&(remote_addr[0]), &addrlen);
-    if ( recvlen == sizeof(int) )
+    // receive frequency gain and samp_rate values from remote and set to corresponding dongles
+    int recvlen = recvfrom(fd, recv_val, sizeof(int)*3*device_count, 0, (struct sockaddr*)&(remote_addr[0]), &addrlen);
+
+    int set_flag = 0;
+    // all dongles will be set with the same configuration
+    if ( recvlen == 3*sizeof(int) )
     {
-      recv_val = ntohl(recv_val);
-      /* Set the frequency */
+      int recv_val_freq = ntohl(recv_val[0]);
+      int recv_val_gain = ntohl(recv_val[1]);
+      int recv_val_rate = ntohl(recv_val[2]);
+
       for (i = 0; i < device_count; i++) {
-        frequency[i] = recv_val;
+        frequency[i] = recv_val_freq;
+        gain[i] = 10*recv_val_gain;
+        samp_rate[i] = recv_val_rate;
+      }
+      set_flag = 1;
+    }
+    else if ( recvlen == (int)(3*sizeof(int)*device_count) ) // each dongle will get its own configuration
+    {
+      int j = 0;
+      for (i = 0; i < device_count; i++) {
+        frequency[i] = ntohl(recv_val[j++]);
+        gain[i] = 10*ntohl(recv_val[j++]);
+        samp_rate[i] = ntohl(recv_val[j++]);
+      }
+      set_flag = 1;
+    }
+
+    if (set_flag)
+    {
+      /* Set the frequency gain and sampling rate*/
+      for (i = 0; i < device_count; i++) {
+        /* Set the frequency */
         r = rtlsdr_set_center_freq(dev[i], frequency[i]);
         if (r < 0)
           printf("WARNING: Failed to set center freq. Device %d\n", i);
         else
-          printf("Tuned to %u Hz. Device %d\n", frequency[i], i);
+          SHOW_UDP_RECV( printf("Tuned to %u Hz. Device %d\n", frequency[i], i); )
+
+        /* Set the gain */
+        if (0 == gain[i]) {
+           /* Enable automatic gain */
+          r = rtlsdr_set_tuner_gain_mode(dev[i], 0);
+          if (r < 0)
+            printf("WARNING: Failed to enable automatic gain. Device %d\n", i);
+          SHOW_UDP_RECV( else )
+            SHOW_UDP_RECV( printf("Automatic gain. Device %d\n", i); )
+        } else {
+          /* Enable manual gain */
+          r = rtlsdr_set_tuner_gain_mode(dev[i], 1);
+          if (r < 0)
+            printf("WARNING: Failed to enable manual gain. Device %d\n", i);
+
+          /* Set the tuner gain */
+          r = rtlsdr_set_tuner_gain(dev[i], gain[i]);
+          if (r < 0)
+            printf("WARNING: Failed to set tuner gain. Device %d\n", i);
+          SHOW_UDP_RECV( else )
+            SHOW_UDP_RECV( printf("Tuner gain set to %f dB. Device %d\n", gain[i]/10.0, i); )
+        }
+
+        /* Set the sample rate */
+        r = rtlsdr_set_sample_rate(dev[i], samp_rate[i]);
+        if (r < 0)
+          printf("WARNING: Failed to set sample rate. Device %d\n", i);
+        else
+          SHOW_UDP_RECV( printf("Sampling rate set to %d Hz. Device %d\n", samp_rate[i], i); )
 
         r = rtlsdr_reset_buffer(dev[i]);
         if (r < 0)
-          printf("WARNING: Failed to reset buffers.\n");
+          printf("WARNING: Failed to reset buffers. Device %d\n", i);
       }
     }
 

@@ -12,7 +12,7 @@ start_freq = 935e6; % P GSM
 
 end_freq = 960e6;
 freq_step = 100e3;
-sample_rate = 100e3; % this value must be set to rtl-sdr-relay correctly in command line
+sample_rate = 100e3; % this value will be set to rtl-sdr-relay via UDP packet
 packet_len = 512; % this value must be comformed with paramter -l of rtl-sdr-relay in command line
 observe_time = 100e-3;
 
@@ -50,7 +50,7 @@ power_spectrum0 = inf.*ones(1, length(start_freq:freq_step:end_freq));
 power_spectrum1 = inf.*ones(1, length(start_freq:freq_step:end_freq));
 idx = 1;
 for freq = start_freq:freq_step:end_freq
-    fwrite(udp_obj0, int32(freq), 'int32');
+    fwrite(udp_obj0, int32([freq, 0, sample_rate]), 'int32');
     pause(0.1);
     a0 = inf.*ones(num_frame, fread_len);
     a1 = inf.*ones(num_frame, fread_len);

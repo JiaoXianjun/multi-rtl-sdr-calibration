@@ -7,6 +7,8 @@ Relay multiple rtl-sdr dongles IQ samples out by UDP packets for easy real-time 
 
 Different dongles IQ samples are sent through different UDP ports.
 
+The relay program also can receive UDP instrction pakcet(listening port 13485), extract parameters, and set them to corresponding dongles.
+
 Currently, it is only tested in Ubuntu Linux (12.04 LTS), and only relay to localhost/host-computer.
 
 Some codes are copied/modified from rtl-sdr: http://sdr.osmocom.org/trac/wiki/rtl-sdr.
@@ -56,8 +58,8 @@ Detail usage example/explanation:
 
 In matlab, you may receive and process UDP packets like this:
 
-	udp_obj0 = udp('127.0.0.1', 10000, 'LocalPort', 6666); % for dongle 0
-	udp_obj1 = udp('127.0.0.1', 10000, 'LocalPort', 6667); % for dongle 1
+	udp_obj0 = udp('127.0.0.1', 13485, 'LocalPort', 6666); % for dongle 0
+	udp_obj1 = udp('127.0.0.1', 13485, 'LocalPort', 6667); % for dongle 1
 
 	fread_len = 8192; % max allowed
 	set(udp_obj0, 'InputBufferSize', fread_len);
@@ -78,7 +80,19 @@ In matlab, you may receive and process UDP packets like this:
 	    ....
 	end
 
-See detail script in recv_proc_udp.m
+See detail script recv_proc_udp.m
+
+In matlab, you may send UDP packet to rtl-sdr-relay like this (Assume that there are two dongles):
+
+  fwrite(udp_obj0, int32([freq, gain, samp_rate]), 'int32');
+
+set the same frequency, gain and sampling rate parameters to two dongles.
+
+  fwrite(udp_obj0, int32([freq0, gain0, samp_rate0, freq1, gain1, samp_rate1]), 'int32');
+
+set two sets of parameters to two dongles respectively.
+
+See detail script scan_band_power_spectrum.m
 
 Contributing
 =======================
