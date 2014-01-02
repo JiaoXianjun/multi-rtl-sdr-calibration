@@ -2,8 +2,8 @@
 % try to have two dongles synchronized to the same GSM downlink FCCH SCH
 % run command line first: ./rtl-sdr-relay -b 8192 -l 8192
 
-freq = 957.4e6;
-% freq = 957.6e6;
+% freq = 957.4e6;
+freq = 957.6e6;
 % freq = 957.8e6;
 
 % freq = 956.2e6;
@@ -16,7 +16,7 @@ freq = 957.4e6;
 % freq = 958.8e6;
 
 symbol_rate = (1625/6)*1e3;
-oversampling_ratio = 8;
+oversampling_ratio = 4;
 sampling_rate = symbol_rate*oversampling_ratio;
 
 inspection_time = 200e-3; % unit: second
@@ -44,7 +44,7 @@ set(udp_obj0, 'InputBufferSize', 2*num_frame*fread_len);
 set(udp_obj0, 'Timeout', 40);
 set(udp_obj1, 'InputBufferSize', 2*num_frame*fread_len);
 set(udp_obj1, 'Timeout', 40);
-time_to_flush_buffer = (2.1*num_frame*fread_len/2)/sample_rate;
+% time_to_flush_buffer = (2.1*num_frame*fread_len/2)/sample_rate;
 
 fopen(udp_obj0);
 fopen(udp_obj1);
@@ -55,12 +55,12 @@ close all;
 fwrite(udp_obj0, int32(round([freq, 0, sampling_rate])), 'int32');
 pause(time_to_flush_buffer);
 
-sampling_rate_4x = sampling_rate/2;
+sampling_rate_4x = sampling_rate;
 idx = 1;
 while 1
-    % set frequency gain and sampling rate
-    fwrite(udp_obj0, int32(round([freq, 0, sampling_rate])), 'int32');
-    pause(time_to_flush_buffer);
+%     % set frequency gain and sampling rate
+%     fwrite(udp_obj0, int32(round([freq, 0, sampling_rate])), 'int32');
+%     pause(time_to_flush_buffer);
     
     a0 = inf.*ones(fread_len, num_frame);
     a1 = inf.*ones(fread_len, num_frame);
@@ -84,7 +84,8 @@ while 1
         s = raw2iq([a0(:), a1(:)]);
 
         % process signal
-        s = chn_filter_8x_4x(s);
+%         s = chn_filter_8x_4x(s);
+        s = chn_filter_4x(s);
 
         [FCCH_pos, metric_data] = FCCH_coarse_position(s, sampling_rate_4x);
 
