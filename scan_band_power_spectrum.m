@@ -2,7 +2,7 @@
 % function scan_band_power_spectrum(start_freq, end_freq, freq_step, sample_rate, observe_time)
 % all parameters are in Hz or Second.
 % If you want to inspect power spectrum in GSM 900 downlink band,
-% run command line first: ./rtl-sdr-relay -f 905000000 -s 100000 -b 512 -l 512
+% run command line first: ./rtl-sdr-relay -f 905000000 -s 100000 -b 8192 -l 8192
 % Set all parameters like:
 
 start_freq = 935e6; % P GSM
@@ -13,7 +13,7 @@ start_freq = 935e6; % P GSM
 end_freq = 960e6;
 freq_step = 100e3;
 sample_rate = 100e3; % this value will be set to rtl-sdr-relay via UDP packet
-packet_len = 512; % this value must be comformed with paramter -l of rtl-sdr-relay in command line
+packet_len = 8192; % this value must be comformed with paramter -l of rtl-sdr-relay in command line
 observe_time = 100e-3;
 
 num_samples = observe_time*sample_rate;
@@ -35,10 +35,11 @@ udp_obj0 = udp('127.0.0.1', 13485, 'LocalPort', 6666); % for dongle 0
 udp_obj1 = udp('127.0.0.1', 13485, 'LocalPort', 6667); % for dongle 1
 
 fread_len = packet_len;
-set(udp_obj0, 'InputBufferSize', fread_len);
+set(udp_obj0, 'InputBufferSize', 2*num_recv*fread_len);
 set(udp_obj0, 'Timeout', 40);
-set(udp_obj1, 'InputBufferSize', fread_len);
+set(udp_obj1, 'InputBufferSize', 2*num_recv*fread_len);
 set(udp_obj1, 'Timeout', 40);
+time_to_flush_buffer = (2.1*num_recv*fread_len/2)/sample_rate;
 
 fopen(udp_obj0);
 fopen(udp_obj1);
@@ -51,31 +52,37 @@ power_spectrum1 = inf.*ones(1, length(start_freq:freq_step:end_freq));
 idx = 1;
 for freq = start_freq:freq_step:end_freq
     fwrite(udp_obj0, int32(round([freq, 0, sample_rate])), 'int32');
-    pause(0.1);
-    a0 = inf.*ones(num_frame, fread_len);
-    a1 = inf.*ones(num_frame, fread_len);
-    for i=1:num_frame  % get many frame in one signal sequence
+    pause(time_to_flush_buffer);
+    a0 = inf.*ones(fread_len, num_frame);
+    a1 = inf.*ones(fread_len, num_frame);
+    
+    i = 1;
+    while 1
         [tmp0, real_count0] = fread(udp_obj0, fread_len, 'uint8');
         [tmp1, real_count1] = fread(udp_obj1, fread_len, 'uint8');
         
         if ( real_count0~=fread_len || real_count1~=fread_len )
+            disp(num2str([idx i fread_len, real_count0, real_count1]));
             continue;
         end
         
-        a0(i,:) = tmp0;
-        a1(i,:) = tmp1;
+        a0(:, i) = tmp0;
+        a1(:, i) = tmp1;
+        
+        if i == num_frame
+            break;
+        end
+        
+        i = i + 1;
     end
 
     % convert raw unsigned IQ samples to normal IQ samples for signal processing purpose
-    s0 = a0';
-    s0 = raw2iq(s0(:)');
-    s1 = a1';
-    s1 = raw2iq(s1(:)');
+    s = raw2iq([a0(:), a1(:)]);
     
-    % process samples from two dongles in varable "s0" and "s1"
+    % process samples from two dongles in two columns of varable s
     % add your routine here
-    power_spectrum0(idx) = 10*log10(mean(abs(s0).^2));
-    power_spectrum1(idx) = 10*log10(mean(abs(s1).^2));
+    power_spectrum0(idx) = 10*log10(mean(abs(s(:,1)).^2));
+    power_spectrum1(idx) = 10*log10(mean(abs(s(:,2)).^2));
     idx = idx + 1;
     
     if mod(idx, 50) == 0

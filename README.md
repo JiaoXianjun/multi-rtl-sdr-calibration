@@ -32,7 +32,7 @@ Usage
 =======================
 Quick demo after you successfully make: (Plug two dongles to your computer!)
 
-  ./rtl-sdr-relay -f 905000000 -s 1000000 -b 512 -l 512
+  ./rtl-sdr-relay -f 905000000 -s 1000000 -b 8192 -l 8192
 
 Then run matlab script: recv_proc_udp.m to see bursts (roughly synchronized in timeline) received from two dongles.
 
@@ -73,6 +73,7 @@ In matlab, you may receive and process UDP packets like this:
 	    [a0, real_count0] = fread(udp_obj0, fread_len, 'uint8');
 	    [a1, real_count1] = fread(udp_obj1, fread_len, 'uint8');
 	    if real_count0~=fread_len || real_count1~=fread_len
+          disp(num2str([fread_len, real_count0, real_count1]));
 	        continue;
 	    end
 
