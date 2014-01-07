@@ -1,11 +1,11 @@
-multi-rtl-sdr-udp-relay README
+multi-rtl-sdr-calibration README
 
 =======================
 By a enthusiast <putaoshu@msn.com> <putaoshu@gmail.com> of Software Defined Radio.
 
-Relay multiple rtl-sdr dongles IQ samples out by UDP packets for easy real-time use in Matlab or other program.
+Try to process/calibrate multiple rtl-sdr dongles simultaneously.
 
-Different dongles IQ samples are sent through different UDP ports.
+Different dongles IQ samples are sent through different rtl_tcp instances. (rtl_tcp is a utility offered with rtl-sdr package: https://github.com/steve-m/librtlsdr.git)
 
 The relay program also can receive UDP instrction pakcet(listening port 13485), extract parameters, and set them to corresponding dongles.
 
