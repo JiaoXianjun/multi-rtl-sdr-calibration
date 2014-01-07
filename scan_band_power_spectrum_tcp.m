@@ -20,7 +20,7 @@ freq_step = 100e3;
 
 RBW = 50e3;
 
-gain = 49; % 49.6dB is the maximum value for 820T tuner. You should find it for you dongle by rtl_test
+gain = 49; % 49.6dB is the maximum value for 820T tuner. You should find a appropriate value for your case
 
 observe_time = 500e-3; % observation time at each frequency point
 
@@ -63,8 +63,8 @@ num_frame = num_recv;
 power_spectrum0 = inf.*ones(1, length(start_freq:freq_step:end_freq));
 power_spectrum1 = inf.*ones(1, length(start_freq:freq_step:end_freq));
 
-set_gain_tcp(tcp_obj0, gain);
-set_gain_tcp(tcp_obj1, gain);
+set_gain_tcp(tcp_obj0, gain*10); %be careful, in rtl_sdr the 10x is done inside C program, but in rtl_tcp the 10x has to be done here.
+set_gain_tcp(tcp_obj1, gain*10);
 
 set_rate_tcp(tcp_obj0, sample_rate);
 set_rate_tcp(tcp_obj1, sample_rate);
