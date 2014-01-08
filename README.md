@@ -26,6 +26,7 @@ Quick demo after you plug dongle to your computer. (You may try more than one do
 Assume that you have two dongles there, open two shell and run
 
   rtl_tcp -p 1234 -d 0
+
   rtl_tcp -p 1235 -d 1
 
 in two shells respectively.
