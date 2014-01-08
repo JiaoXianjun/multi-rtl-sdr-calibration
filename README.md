@@ -20,6 +20,7 @@ But please join me if you also think this is a good idea. Please see TODO firstl
 Usage
 =======================
 Assume that you have rtl-sdr worked correctly. (See http://sdr.osmocom.org/trac/wiki/rtl-sdr)
+
 Quick demo after you plug dongle to your computer. (You may try more than one dongle on your computer.)
 
 Assume that you have two dongles there, open two shell and run
