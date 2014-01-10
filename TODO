@@ -6,5 +6,29 @@ TODO:
  2: (DONE. rtl_tcp supports it natively.)Would Async mode rtl-sdr read be better than Sync mode?
  3: (DONE. No need now because using rtl_tcp now.) Make bi-directional UDP link to let C program accept Matlab's control?
  4: In-fly multi-dongles calibration algorithm. (Which signal is good candidate for this? GSM? 1090MHz ADS-B?)
- 5: Any others?
+
+ 4.1:
+ continuous fft to locate time position of fcch, which has been done.
+
+ 4.2:
+ Then optimize it for lower computation load by fft only in predicted position.
+
+ 4.3:
+ Fft can estimate integer times of frequency offset. Then we compensate it firstly.
+ After that fractional frequency offset should be estimated by calculating phase step size between adjacent samples. Then compensate it also.
+
+ 4.4:
+ Now we have frequency offset estimated and compensated. We should do sampling rate error estimation and compensation,
+ because in a communication receiver frequency offset mainly comes from tuner but sampling rate error mainly comes from a/d clock,
+ and they are not guaranteed heaving analytic relationship. We should estimate them separately and many times iteratively.
+ Because they are twisted for how signal "look like", and can be separated by iterative processing the signal.
+ Their is a Kalibrate-rtl project on github which did similar thing. But I think it only did with frequency error.
+ I should check if it also did with sampling rate error.
+
+ 4.5:
+ Any other RF non-ideal factor should be compansated to improve accuracy? IQ imbalence? IQ skew?
+
+ 4.6:
+ Optimization, optimization, optimization. C code? OpenCL? I have both experiences.
+
 
