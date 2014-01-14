@@ -13,7 +13,7 @@
 
 % Then run this script in MATLAB.
 
-% ATTENTION! In some computer, every time before you run this script, maybe you need to terminate two rtl_tcp and re-launch them again.
+% ATTENTION! In some computer, every time before you run this script, maybe you need to terminate multiple rtl_tcp and re-launch them again.
 
 % Change following parameters as you need:
 
@@ -124,6 +124,7 @@ for freq_idx = 1:length(freq)
     end
 end
 
+% close TCP
 for i=1:num_dongle
     fclose(tcp_obj{i});
     delete(tcp_obj{i});
@@ -134,6 +135,7 @@ disp('Scanning done!');
 disp(' ');
 disp('Begin process ...');
 
+% generate power spectrum
 power_spectrum = zeros(num_dongle, length(freq));
 for i=1:num_dongle
     r = raw2iq( double( s_all(:,:,i) ) ); % remove DC. complex number constructed.
