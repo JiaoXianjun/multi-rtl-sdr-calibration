@@ -6,18 +6,20 @@
 % rtl_tcp -p 1236 -d 2
 % ...
 
-num_dongle = 2;
+num_dongle = 1;
 
-freq = 957.4e6; % find some GSM like signal by scan_band_power_spectrum_tcp.m!
+freq = 939e6;
+% freq = 957.4e6; % find some GSM downlink signal by multi_rtl_sdr_diversity_scanner.m!
 
 symbol_rate = (1625/6)*1e3;
 oversampling_ratio = 4;
 sampling_rate = symbol_rate*oversampling_ratio;
 
-inspection_time = 200e-3; % unit: second
-packet_len = 8192; % this value must be comformed with paramter -l of rtl-sdr-relay in command line
+num_frame = 51;
+num_sym_per_slot = 625/4;
+num_slot_per_frame = 8;
 
-num_frame = ceil( (inspection_time*sampling_rate*2)/packet_len );
+num_sample = oversampling_ratio * num_frame * num_slot_per_frame * num_sym_per_slot;
 
 if ~isempty(who('tcp_obj'))
     for i=1:length(tcp_obj)
@@ -32,10 +34,9 @@ for i=1:num_dongle
     tcp_obj{i} = tcpip('127.0.0.1', 1233+i); % for dongle i
 end
 
-fread_len = packet_len;
 for i=1:num_dongle
-    set(tcp_obj{i}, 'InputBufferSize', 4*num_frame*fread_len);
-    set(tcp_obj{i}, 'Timeout', 40);
+    set(tcp_obj{i}, 'InputBufferSize', 4*num_sample);
+    set(tcp_obj{i}, 'Timeout', 60);
     fopen(tcp_obj{i});
 end
 
@@ -53,58 +54,39 @@ for i=1:num_dongle
     set_freq_tcp(tcp_obj{i}, freq);
 end
 
-% % read and discard to flush
-% for i=1:num_dongle
-%     fread(tcp_obj{i}, 4*num_frame*fread_len, 'uint8');
-% end
-% 
-% % read and discard to flush
-% for i=1:num_dongle
-%     fread(tcp_obj{i}, 4*num_frame*fread_len, 'uint8');
-% end
-% 
-% pause(1);
-
 sampling_rate_4x = sampling_rate;
 idx = 1;
-s = zeros(num_frame*fread_len, num_dongle);
-tmp = zeros(fread_len, num_dongle);
+s = zeros(2*num_sample, num_dongle);
 real_count = zeros(1, num_dongle);
 while 1
-    good_flag = true;
-    for frame_idx=1:num_frame  % get many frame in one signal sequence
+    while 1 % read data at current frequency until success
         for i=1:num_dongle
-            [tmp(:,i), real_count(i)] = fread(tcp_obj{i}, fread_len, 'uint8');
+            [s(:, i), real_count(i)] = fread(tcp_obj{i}, 2*num_sample, 'uint8');
         end
-        
-        if sum(real_count-fread_len) ~= 0
-            good_flag = false;
-            disp(num2str([idx frame_idx fread_len, real_count]));
+
+        if sum(real_count-(2*num_sample)) ~= 0
+            disp(num2str([idx 2*num_samples, real_count]));
+        else
             break;
         end
-        
-        for i=1:num_dongle
-            s( ((frame_idx-1)*fread_len + 1) : (frame_idx*fread_len), i) = tmp(:,i);
-        end
     end
 
-    if good_flag
-        % convert raw unsigned IQ samples to normal IQ samples for signal processing purpose
-        s = raw2iq(s);
+    % convert raw unsigned IQ samples to normal IQ samples for signal processing purpose
+    r = raw2iq(s);
 
-        % process signal
+    % process signal
 %         s = chn_filter_8x_4x(s);
-        s = chn_filter_4x(s);
+    r = chn_filter_4x(r);
 
-        [FCCH_pos, metric_data] = FCCH_coarse_position(s, sampling_rate_4x);
+    [FCCH_pos, metric_data] = FCCH_coarse_position(r, sampling_rate_4x);
 
-        for i=1:num_dongle
-            figure(i);
-            subplot(2,1,1); plot(FCCH_pos(:,i));
-            subplot(2,1,2); plot(metric_data(:,i));
-        end
-        drawnow;
+    for i=1:num_dongle
+        figure(i);
+        subplot(2,1,1); plot(FCCH_pos(:,i));
+        subplot(2,1,2); plot(metric_data(:,i));
     end
+    drawnow;
+    
     idx = idx + 1;
 end
 
