@@ -38,7 +38,7 @@ end_freq = 960e6; % End of Primary GSM-900 Band downlink
 
 freq_step = 0.05e6; % less step, higher resolution, narrower FIR bandwidth, slower speed
 
-observe_time = 0.2; % observation time at each frequency point. ensure it can capture your signal!
+observe_time = 0.1; % observation time at each frequency point. ensure it can capture your signal!
 
 RBW = freq_step; % Resolution Bandwidth each time we inspect
 
@@ -107,6 +107,7 @@ for i=1:num_dongle
 end
 
 % capture samples of all frequencies firstly!
+tic;
 for freq_idx = 1:length(freq)
     current_freq = freq(freq_idx);
     
@@ -123,6 +124,8 @@ for freq_idx = 1:length(freq)
         end
     end
 end
+e = toc;
+ideal_time_cost = observe_time*length(freq);
 
 % close TCP
 for i=1:num_dongle
@@ -132,17 +135,20 @@ end
 clear tcp_obj;
 
 disp('Scanning done!');
+disp(['actual time cost ' num2str(e) ' ideal cost ' num2str(ideal_time_cost) ' efficiency(ideal/actual) ' num2str(ideal_time_cost/e)]);
 disp(' ');
 disp('Begin process ...');
 
 % generate power spectrum
 power_spectrum = zeros(num_dongle, length(freq));
+tic;
 for i=1:num_dongle
     r = raw2iq( double( s_all(:,:,i) ) ); % remove DC. complex number constructed.
     r_flt = filter(coef, 1, r);% filter target band out
-    r_flt = r_flt(1:decimate_ratio:end, :);% decimation
-    power_spectrum(i, :) = mean(abs(r_flt).^2, 1);% get averaged power
+    power_spectrum(i, :) = mean(abs(r_flt(1:decimate_ratio:end, :)).^2, 1);% get averaged power
 end
+e1 = toc;
+disp(['time cost ' num2str(e1) ' scan/process ' num2str(e/e1)]);
 
 % plot power spectrum (converted to dB)
 figure;
