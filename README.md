@@ -31,7 +31,9 @@ Assume that you have two dongles there, open two shell and run
 
 in two shells respectively.
 
-Then run matlab script: multi_rtl_sdr_diversity_scanner.m to see how to use two dongles to scan a band simultaneously.
+Then run matlab script: multi_rtl_sdr_split_scanner.m/multi_rtl_sdr_diversity_scanner.m to see how to use two dongles to scan a band simultaneously.
+
+(See README_for_scanner.txt for detail of this "side product" -- scanner.)
 
 If you only have one dongle, don't forget to change num_dongle from 2 to 1 in multi_rtl_sdr_diversity_scanner.m.
 
@@ -64,7 +66,7 @@ In matlab, I receive and process TCP streams like this:
 	    ....
 	end
 
-See detail in script multi_rtl_sdr_diversity_scanner.m
+See detail in script multi_rtl_sdr_split_scanner.m/multi_rtl_sdr_diversity_scanner.m
 
 I also give some little tool scripts to set dongle's frequency, gain, etc.
 
