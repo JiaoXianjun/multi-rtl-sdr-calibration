@@ -1,5 +1,5 @@
 % Jiao Xianjun (putaoshu@msn.com; putaoshu@gmail.com)
-% Frequency band scanning and incoherent combination via multiple rtl-sdr dongles.
+% Frequency band scanning via multiple rtl-sdr dongles. Each dongle for each sub-band to speedup!
 % A script of project: https://github.com/JiaoXianjun/multi-rtl-sdr-calibration
 
 % Assume that you have installed rtl-sdr
@@ -18,7 +18,7 @@
 % Change following parameters as you need:
 
 % Number of dongles you have connected to your computer
-num_dongle = 1;
+num_dongle = 2; % more dongles, much faster.
 
 % Beginning of the band you are interested in
 % start_freq = 910e6; % for test
@@ -58,10 +58,15 @@ num_samples = observe_time*sample_rate;
 clf;
 close all;
 
-real_count = zeros(1, num_dongle);
-freq = start_freq:freq_step:end_freq;
+% construct freq set for each dongle
+freq_orig = start_freq:freq_step:end_freq;
+num_freq_per_sub_band = ceil(length(freq_orig)/num_dongle);
+num_pad = num_freq_per_sub_band*num_dongle - length(freq_orig);
+freq = [freq_orig freq_orig(end)+(1:num_pad).*freq_step];
+freq = vec2mat(freq, num_freq_per_sub_band);
 
-s_all = uint8( zeros(2*num_samples, length(freq), num_dongle) );
+real_count = zeros(1, num_dongle);
+s_all = uint8( zeros(2*num_samples, num_freq_per_sub_band*num_dongle) );
 decimate_ratio = floor(sample_rate/(2*RBW));
 
 % check if previous tce objects existed. if so clear them
@@ -96,9 +101,9 @@ for i=1:num_dongle
     set_rate_tcp(tcp_obj{i}, sample_rate);
 end
 
-% set frequency
+% set different start freq to different dongle
 for i=1:num_dongle
-    set_freq_tcp(tcp_obj{i}, start_freq);
+    set_freq_tcp(tcp_obj{i}, freq(i,1));
 end
 
 % read and discard to flush
@@ -108,13 +113,11 @@ end
 
 % capture samples of all frequencies firstly!
 tic;
-for freq_idx = 1:length(freq)
-    current_freq = freq(freq_idx);
-    
+for freq_idx = 1:num_freq_per_sub_band
     while 1 % read data at current frequency until success
         for i=1:num_dongle
-            set_freq_tcp(tcp_obj{i}, current_freq); % set current frequency
-            [s_all(:,freq_idx,i), real_count(i)] = fread(tcp_obj{i}, 2*num_samples, 'uint8');
+            set_freq_tcp(tcp_obj{i}, freq(i, freq_idx)); % set different frequency to different dongle
+            [s_all(:, freq_idx + (i-1)*num_freq_per_sub_band), real_count(i)] = fread(tcp_obj{i}, 2*num_samples, 'uint8'); % gather data from different dongles to s_all
         end
 
         if sum(real_count-(2*num_samples)) ~= 0
@@ -125,7 +128,7 @@ for freq_idx = 1:length(freq)
     end
 end
 e = toc;
-ideal_time_cost = observe_time*length(freq);
+ideal_time_cost = observe_time*num_freq_per_sub_band;
 
 % close TCP
 for i=1:num_dongle
@@ -140,22 +143,21 @@ disp(' ');
 disp('Begin process ...');
 
 % generate power spectrum
-power_spectrum = zeros(num_dongle, length(freq));
 tic;
-for i=1:num_dongle
-    r = raw2iq( double( s_all(:,:,i) ) ); % remove DC. complex number constructed.
-    r_flt = filter(coef, 1, r);% filter target band out
-    power_spectrum(i, :) = mean(abs(r_flt(1:decimate_ratio:end, :)).^2, 1);% get averaged power
-end
+r = raw2iq( double( s_all ) ); % remove DC. complex number constructed.
+r_flt = filter(coef, 1, r);% filter target band out
+power_spectrum = mean(abs(r_flt(1:decimate_ratio:end, :)).^2, 1);% get averaged power
 e1 = toc;
 disp(['time cost ' num2str(e1) ' scan/process ' num2str(e/e1)]);
 disp(['total time cost ' num2str(e1+e)]);
 
 % plot power spectrum (converted to dB)
+freq_linear = freq';
+freq_linear = freq_linear(:)';
 figure;
 format_string = {'b.-', 'r.-', 'k.-', 'm.-'};
 for i=1:num_dongle
-    plot((start_freq:freq_step:end_freq).*1e-6, 10.*log10(power_spectrum(i,:)), format_string{i}); hold on;
+    plot(freq(i,:).*1e-6, 10.*log10(power_spectrum( (i-1)*num_freq_per_sub_band+1: i*num_freq_per_sub_band)), format_string{i}); hold on;
 end
 
 legend_string = cell(1, num_dongle);
@@ -164,10 +166,5 @@ for i=1:num_dongle
 end
 legend(legend_string);
 
-% plot combined power spectrum (converted to dB)
-figure;
-power_spectrum_combine = mean(power_spectrum, 1);
-plot((start_freq:freq_step:end_freq).*1e-6, 10.*log10(power_spectrum_combine), 'b.-');
-
-filename = ['scan_' num2str(start_freq) '_' num2str(end_freq) '_gain' num2str(gain) '_' num2str(num_dongle) 'dongles.mat'];
-save(filename, 'power_spectrum', 'power_spectrum_combine', 'start_freq', 'end_freq', 'freq_step', 'observe_time', 'RBW', 'gain', 'sample_rate', 'coef');
+filename = ['split_scan_' num2str(start_freq) '_' num2str(end_freq) '_gain' num2str(gain) '_' num2str(num_dongle) 'dongles.mat'];
+save(filename, 'power_spectrum', 'start_freq', 'end_freq', 'freq_step', 'observe_time', 'RBW', 'gain', 'sample_rate', 'coef', 'freq');
