@@ -1,58 +1,73 @@
-function [position, metric_data] = FCCH_coarse_position(s, sampling_rate)
+function position = FCCH_coarse_position(s, oversampling_ratio)
 
 % % method fft
-len_FCCH_CW = 148;
-decimation_ratio = 16;
-s = s(1:decimation_ratio:end, :);
-step_size = 16/decimation_ratio;
+len_FCCH_CW = 148; % GSM spec. 1x rate
+decimation_ratio = 32; % for lower computation load
+s = s(1:decimation_ratio:end);
 
-len_CW = len_FCCH_CW*4/decimation_ratio;
+len_CW = floor( len_FCCH_CW*oversampling_ratio/decimation_ratio );
 fft_len = len_CW;
 
-[len, num_chn] = size(s);
-len_metric = length(1:step_size:len);
-metric_data = zeros(len_metric, num_chn);
-s = [s; zeros(len_CW, num_chn)];
-idx = 1;
-for i=1:step_size:len
-    tmp = s(i:(i+len_CW-1), :);
-    tmp = abs(fft(tmp, fft_len, 1)).^2;
-    [~, max_idx] = max(tmp, [], 1);
-    
-    for chn_idx = 1 : num_chn
-        chn_tmp = tmp(:, chn_idx);
-        
-        sp = max(max_idx(chn_idx)-4, 1);
-        ep = min(max_idx(chn_idx)+3, fft_len);
+len = length(s);
+s = [s; zeros(len_CW, 1)];
+th = 15; %dB. threshold
+hit_flag = 0;
+for i=1:len
+    chn_tmp = s(i:(i+len_CW-1));
+    chn_tmp = abs(fft(chn_tmp, fft_len)).^2;
+    signal_power = max(chn_tmp);
+    noise_power = sum(chn_tmp) - signal_power;
 
-        signal_power = sum( chn_tmp(sp:ep) );
-        chn_tmp(sp:ep) = [];
-        noise_power = mean(chn_tmp);
-        metric_data(idx, chn_idx) = 10*log10(signal_power/noise_power);
+    if signal_power > noise_power*(10^(th/10));
+        hit_flag = 1;
+        disp(['FCCH first hit. SNR ' num2str(10.*log10(signal_power/noise_power)) 'dB']);
+        break;
     end
-    idx = idx+1;
 end
 
-% % % method accumulation
-% len = length(s);
-% 
-% FCCH_freq = (1625/24)*1e3; % Hz
-% phase_per_sample = FCCH_freq*2*pi/sampling_rate;
-% s = s.*exp(-1i.*(1:len).*phase_per_sample);
-% 
-% len_FCCH_CW = 148;
-% len_sum = len_FCCH_CW*4/4;
-% 
-% step_size = 8;
-% len_metric = length(1:step_size:len);
-% metric_data = zeros(1, len_metric);
-% s = [s zeros(1, len_sum)];
-% idx = 1;
-% for i=1:step_size:len
-%     tmp = s(i:(i+len_sum-1));
-%     metric_data(idx) = abs(sum(tmp));
-%     idx = idx+1;
-% end
+if hit_flag == 0
+    disp('No FCCH found!');
+    position = -1;
+    return;
+end
 
+num_sym_per_slot = 625/4;
+num_slot_per_frame = 8;
+num_sym_between_FCCH = 10*num_slot_per_frame*num_sym_per_slot;
 
-position = zeros(1, num_chn);
+num_sym_between_FCCH_oversample = num_sym_between_FCCH*oversampling_ratio;
+num_sym_between_FCCH_decimate = round(num_sym_between_FCCH_oversample/decimation_ratio);
+
+first_position = i;
+target_following_idx = first_position + (1:3).*num_sym_between_FCCH_decimate;
+
+hit_flag = 0;
+for i=1:length(target_following_idx)
+    i_set = target_following_idx(i) + (-1:1);
+    i_set(i_set<1) = 1;
+    i_set(i_set>len) = len;
+    
+    for j=1:length(i_set)
+        idx = i_set(j);
+
+        chn_tmp = s(idx:(idx+len_CW-1));
+        chn_tmp = abs(fft(chn_tmp, fft_len)).^2;
+        signal_power = max(chn_tmp);
+        noise_power = sum(chn_tmp) - signal_power;
+
+        if signal_power > noise_power*(10^(th/10));
+            hit_flag = hit_flag + 1;
+            disp(['FCCH next hit. SNR ' num2str(10.*log10(signal_power/noise_power)) 'dB']);
+            break;
+        end
+    end
+end
+
+if hit_flag == length(target_following_idx)
+    position = (first_position-1)*decimation_ratio + 1;
+    disp(['Find successive ' num2str(hit_flag+1) ' FCCH. First position ' num2str(position)]);
+else
+    disp(['No enough FCCH found! Only ' num2str(hit_flag+1)]);
+    position = -1;
+end
+
