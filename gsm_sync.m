@@ -1,5 +1,6 @@
 % Jiao Xianjun (putaoshu@msn.com; putaoshu@gmail.com)
-% try to have multiple dongles synchronized to the same GSM downlink FCCH SCH
+% try to have multiple dongles synchronized to the same GSM downlink FCCH SCH.
+% Now only work control channel multiframe of GSM downlink, which contain CCH, SCH, BCCH, CCCH
 % run command line first (depends on how many dongles you have):
 % rtl_tcp -p 1234 -d 0
 % rtl_tcp -p 1235 -d 1
@@ -60,6 +61,7 @@ end
 fread(tcp_obj{i}, 2*num_sample, 'uint8');
 
 % % % --------------------------- read and processing ----------------------------------
+% % % ---------------------------------------------------------------------------------
 while 1 % read data from multiple dongles until success
     for i=1:num_dongle
         [s(:, i), real_count(i)] = fread(tcp_obj{i}, 2*num_sample, 'uint8');
@@ -75,19 +77,21 @@ end
 % convert raw unsigned IQ samples to normal IQ samples for signal processing purpose
 r = raw2iq(s);
 
-% process signal
+% channel filter
 r = chn_filter_4x(r);
 
-FCCH_pos = zeros(1, num_dongle);
 for i=1:num_dongle
-    FCCH_pos(i) = FCCH_coarse_position(r(:,i), oversampling_ratio);
+    FCCH_pos = FCCH_coarse_position(r(:,i), oversampling_ratio);
+    [SCH_pos, r_rate_correct] = SCH_corr_rate_correction(r(FCCH_pos:end,i), oversampling_ratio);
 end
 
-for i=1:num_dongle
-    figure(i);
-    plot(FCCH_pos(i), 'b*');
-end
+% for i=1:num_dongle
+%     figure(i);
+%     plot(FCCH_pos(i), 'b*');
+% end
+% % % ---------------------------------------------------------------------------------
 % % % --------------------------- end of read and processing ------------------------------
+
 % close obj
 for i=1:num_dongle
     fclose(tcp_obj{i});
