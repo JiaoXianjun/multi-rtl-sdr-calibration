@@ -9,11 +9,12 @@
 
 num_dongle = 1;
 
-freq = 939e6; % home
-% freq = 957.4e6; % office. find some GSM downlink signal by multi_rtl_sdr_diversity_scanner.m!
+% freq = 939e6; % home
+freq = 957.3e6; % office. find some GSM downlink signal by multi_rtl_sdr_diversity_scanner.m!
 
 symbol_rate = (1625/6)*1e3;
 oversampling_ratio = 4;
+decimation_ratio_for_FCCH_rough_position = 8;
 sampling_rate = symbol_rate*oversampling_ratio;
 
 num_frame = 2*51; % two multiframe (each has 51 frames)
@@ -23,6 +24,10 @@ num_slot_per_frame = 8;
 num_sample = oversampling_ratio * num_frame * num_slot_per_frame * num_sym_per_slot;
 s = zeros(2*num_sample, num_dongle);
 real_count = zeros(1, num_dongle);
+
+% GSM channel filter for 4x oversampling
+coef = fir1(30, 200e3/sampling_rate);
+% freqz(coef, 1, 1024);
 
 clf;
 close all;
@@ -79,11 +84,11 @@ for idx=1:10
     r = raw2iq(s);
 
     % channel filter
-    r = chn_filter_4x(r);
+    r = filter(coef, 1, r);
 
     for i=1:num_dongle
-        FCCH_pos= FCCH_coarse_position(r(:,i), oversampling_ratio);
-        disp(num2str(FCCH_pos));
+        FCCH_pos= FCCH_coarse_position(r(1:(oversampling_ratio*decimation_ratio_for_FCCH_rough_position):end,i), decimation_ratio_for_FCCH_rough_position);
+        disp(['diff ' num2str(diff(FCCH_pos))]);
         subplot(2,1,1); plot(FCCH_pos, 'b*-');
         subplot(2,1,2); plot(diff(FCCH_pos), 'b*-');
         drawnow;

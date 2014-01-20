@@ -6,7 +6,12 @@ for count=1:length(target_set)
     i = target_set(count);
     chn_tmp = s(i:(i+fft_len-1));
     chn_tmp = abs(fft(chn_tmp, fft_len)).^2;
-    signal_power = max(chn_tmp);
+
+%     signal_power = max(chn_tmp);
+    [~, max_idx] = max(chn_tmp);
+    max_set = mod((max_idx + (-1:1))-1, fft_len) + 1;
+    signal_power = sum( chn_tmp(max_set) );
+
     noise_power = sum(chn_tmp) - signal_power;
     snr = 10.*log10(signal_power/noise_power);
     
@@ -14,7 +19,7 @@ for count=1:length(target_set)
 
     if peak_to_avg > th
         hit_flag = true;
-        disp(['Hit. idx ' num2str(i) '; SNR ' num2str(snr) 'dB; peak SNR to avg SNR ' num2str(peak_to_avg) 'dB']);
+        disp(['Hit. count ' num2str(count) ' idx ' num2str(i) '; SNR ' num2str(snr) 'dB peak SNR to avg SNR ' num2str(peak_to_avg) 'dB']);
         break;
     end
 end

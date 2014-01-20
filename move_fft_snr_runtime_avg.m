@@ -12,9 +12,15 @@ tmp = zeros(1, len - (fft_len-1));
 for i=1:(len - (fft_len-1))
     chn_tmp = s(i:(i+fft_len-1));
     chn_tmp = abs(fft(chn_tmp, fft_len)).^2;
-    signal_power = max(chn_tmp);
+    
+%     signal_power = max(chn_tmp);
+    [~, max_idx] = max(chn_tmp);
+    max_set = mod((max_idx + (-1:1))-1, fft_len) + 1;
+    signal_power = sum( chn_tmp(max_set) );
+
     noise_power = sum(chn_tmp) - signal_power;
     snr = 10.*log10(signal_power/noise_power);
+    tmp(i) = snr;
     
     peak_to_avg = snr - (sum_snr/mv_len);
 
@@ -30,7 +36,6 @@ for i=1:(len - (fft_len-1))
         store_for_moving_avg(1) = snr;
     end
     
-    tmp(i) = snr;
 end
 
 if hit_flag
