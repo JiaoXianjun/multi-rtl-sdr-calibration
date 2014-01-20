@@ -1,6 +1,7 @@
-function [hit_flag, hit_idx] = specific_fft_snr_fix_avg(s, target_set, fft_len, th, avg_snr)
+function [hit_flag, hit_idx, hit_snr] = specific_fft_snr_fix_avg(s, target_set, fft_len, th, avg_snr)
 hit_flag = false;
 hit_idx = -1;
+hit_snr = inf;
 
 for count=1:length(target_set)
     i = target_set(count);
@@ -19,11 +20,12 @@ for count=1:length(target_set)
 
     if peak_to_avg > th
         hit_flag = true;
-        disp(['Hit. count ' num2str(count) ' idx ' num2str(i) '; SNR ' num2str(snr) 'dB peak SNR to avg SNR ' num2str(peak_to_avg) 'dB']);
+%         disp(['Hit. count ' num2str(count - ((length(target_set)+1)/2)) ' idx ' num2str(i) '; SNR ' num2str(snr) 'dB peak SNR to avg SNR ' num2str(peak_to_avg) 'dB']);
         break;
     end
 end
 
 if hit_flag
     hit_idx = i;
+    hit_snr = snr;
 end

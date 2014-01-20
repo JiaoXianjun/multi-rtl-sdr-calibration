@@ -1,7 +1,8 @@
-function [hit_flag, hit_idx, hit_avg_snr] = move_fft_snr_runtime_avg(s, mv_len, fft_len, th)
+function [hit_flag, hit_idx, hit_avg_snr, hit_snr] = move_fft_snr_runtime_avg(s, mv_len, fft_len, th)
 hit_flag = false;
 hit_idx = -1;
 hit_avg_snr = inf;
+hit_snr = inf;
 
 store_for_moving_avg = 999.*ones(1, mv_len);
 sum_snr = sum(store_for_moving_avg);
@@ -26,7 +27,7 @@ for i=1:(len - (fft_len-1))
 
     if peak_to_avg > th
         hit_flag = true;
-        disp(['Hit. idx ' num2str(i) '; SNR ' num2str(snr) 'dB; peak SNR to avg SNR ' num2str(peak_to_avg) 'dB']);
+%         disp(['Hit. idx ' num2str(i) '; SNR ' num2str(snr) 'dB; peak SNR to avg SNR ' num2str(peak_to_avg) 'dB']);
         break;
     else
         sum_snr = sum_snr - store_for_moving_avg(end);
@@ -40,5 +41,6 @@ end
 
 if hit_flag
     hit_idx = i;
+    hit_snr = snr;
     hit_avg_snr = snr - peak_to_avg;
 end

@@ -1,4 +1,4 @@
-function position = FCCH_coarse_position(s, decimation_ratio)
+function [position, snr] = FCCH_coarse_position(s, decimation_ratio)
 num_sym_per_slot = 625/4;
 num_slot_per_frame = 8;
 num_sym_per_frame = num_sym_per_slot*num_slot_per_frame;
@@ -12,11 +12,12 @@ fft_len = 2^floor( log2( len_FCCH_CW/decimation_ratio ) );
 len = length(s);
 th = 10; %dB. threshold
 mv_len = 10*fft_len;
-[hit_flag, hit_idx, hit_avg_snr] = move_fft_snr_runtime_avg(s(1:(12*num_sym_per_frame/decimation_ratio)), mv_len, fft_len, th);
+[hit_flag, hit_idx, hit_avg_snr, hit_snr] = move_fft_snr_runtime_avg(s(1:ceil(13*num_sym_per_frame/decimation_ratio)), mv_len, fft_len, th);
 
 if ~hit_flag
-    disp('No FCCH found!');
+%     disp('No FCCH found!');
     position = -1;
+    snr = inf;
     return;
 end
 
@@ -27,9 +28,10 @@ num_sym_between_FCCH_decimate = round(num_sym_between_FCCH/decimation_ratio);
 num_sym_between_FCCH_decimate1 = round(num_sym_between_FCCH1/decimation_ratio);
 
 position = hit_idx;
+snr = hit_snr;
 
 set_idx = 1;
-max_offset = 4;
+max_offset = 5;
 while 1
     next_position = position(set_idx) + num_sym_between_FCCH_decimate;
     
@@ -41,10 +43,11 @@ while 1
 %     i_set(i_set<1) = 1;
 %     i_set(i_set>(len - (fft_len-1))) = (len - (fft_len-1));
 
-    [hit_flag, hit_idx] = specific_fft_snr_fix_avg(s, i_set, fft_len, th, hit_avg_snr);
+    [hit_flag, hit_idx, hit_snr] = specific_fft_snr_fix_avg(s, i_set, fft_len, th, hit_avg_snr);
     
     if hit_flag
         position = [position hit_idx];
+        snr = [snr hit_snr];
         set_idx = set_idx + 1;
     else
         next_position = position(set_idx) + num_sym_between_FCCH_decimate1;
@@ -57,10 +60,11 @@ while 1
 %         i_set(i_set<1) = 1;
 %         i_set(i_set>(len - (fft_len-1))) = (len - (fft_len-1));
 
-        [hit_flag, hit_idx] = specific_fft_snr_fix_avg(s, i_set, fft_len, th, hit_avg_snr);
+        [hit_flag, hit_idx, hit_snr] = specific_fft_snr_fix_avg(s, i_set, fft_len, th, hit_avg_snr);
         
         if hit_flag
             position = [position hit_idx];
+            snr = [snr hit_snr];
             set_idx = set_idx + 1;
         else
             break;
