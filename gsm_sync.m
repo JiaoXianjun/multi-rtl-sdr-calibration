@@ -83,6 +83,7 @@ for idx=1:10
 
     for i=1:num_dongle
         FCCH_pos= FCCH_coarse_position(r(:,i), oversampling_ratio);
+        disp(num2str(FCCH_pos));
         subplot(2,1,1); plot(FCCH_pos, 'b*-');
         subplot(2,1,2); plot(diff(FCCH_pos), 'b*-');
         drawnow;

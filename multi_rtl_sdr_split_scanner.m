@@ -8,12 +8,13 @@
 % For example, you have multiple dongles, please run multiple rtl_tcp in multiple shell respectively as:
 % rtl_tcp -p 1234 -d 0
 % rtl_tcp -p 1235 -d 1
-% rtl_tcp -p 1236 -d 3
+% rtl_tcp -p 1236 -d 2
 % ...
 
 % Then run this script in MATLAB.
 
 % ATTENTION! In some computer, every time before you run this script, maybe you need to terminate multiple rtl_tcp and re-launch them again.
+% ATTENTION! Please reduce number of inspected points by reducing frequency range or increasing step size, if your computer hasn't enough memory installed. Because all signlas are stored firstly before processing.
 
 % Change following parameters as you need:
 
