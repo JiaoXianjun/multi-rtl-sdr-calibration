@@ -1,4 +1,4 @@
-Multiple rtl-sdr(rtl_tcp) dongles based Matlab frequency scanner.
+Multiple rtl-sdr(rtl_tcp) dongles based Matlab frequency scanner. (putaoshu@gmail.com; putaoshu@msn.com)
 1. multi_rtl_sdr_split_scanner.m
 Have multiple dongles run concurrently to speedup scanning wide band by scanning different sub-band with different dongle.
 2. multi_rtl_sdr_diversity_scanner.m

@@ -1,4 +1,4 @@
-Multiple rtl-sdr(rtl_tcp) dongles based GSM FCCH scanner.
+Multiple rtl-sdr(rtl_tcp) dongles based GSM FCCH scanner. (putaoshu@gmail.com; putaoshu@msn.com)
 
 multi_rtl_sdr_gsm_FCCH_scanner.m
 Have multiple dongles run concurrently to speedup detecting FCCH(Frequency correction channel) burst in wide GSM band by scanning different sub-band with different dongle.
