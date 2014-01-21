@@ -19,7 +19,7 @@ rtl_tcp -p 1236 -d 2
 2. Then run script multi_rtl_sdr_split_scanner.m or multi_rtl_sdr_diversity_scanner.m in MATLAB.
 
 ATTENTION! In some computer, each time before you run script, maybe you need to terminate multiple rtl_tcp and re-launch them again.
-ATTENTION! Please reduce number of inspected points by reducing frequency range or increasing step size, if your computer hasn't enough memory installed. Because all signlas are stored firstly before processing.
+ATTENTION! Please reduce number of inspected points by reducing frequency range or increasing step size, if your computer hasn't enough memory installed. Because all signals are stored firstly before processing.
 
 Change following parameters in the script as you need:
 

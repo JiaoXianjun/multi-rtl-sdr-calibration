@@ -9,8 +9,8 @@
 
 num_dongle = 1;
 
-freq = 939e6; % home
-% freq = 957.3e6; % office. find some GSM downlink signal by multi_rtl_sdr_diversity_scanner.m!
+% freq = 939e6; % home
+freq = 957.4e6; % office. find some GSM downlink signal by multi_rtl_sdr_diversity_scanner.m!
 
 symbol_rate = (1625/6)*1e3;
 oversampling_ratio = 4;

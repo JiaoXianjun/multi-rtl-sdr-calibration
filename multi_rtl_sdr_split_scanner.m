@@ -19,7 +19,7 @@
 % Change following parameters as you need:
 
 % Number of dongles you have connected to your computer
-num_dongle = 2; % more dongles, much faster.
+num_dongle = 1; % more dongles, much faster.
 
 % Beginning of the band you are interested in
 % start_freq = 910e6; % for test
@@ -118,6 +118,8 @@ for freq_idx = 1:num_freq_per_sub_band
     while 1 % read data at current frequency until success
         for i=1:num_dongle
             set_freq_tcp(tcp_obj{i}, freq(i, freq_idx)); % set different frequency to different dongle
+        end
+        for i=1:num_dongle
             [s_all(:, freq_idx + (i-1)*num_freq_per_sub_band), real_count(i)] = fread(tcp_obj{i}, 2*num_samples, 'uint8'); % gather data from different dongles to s_all
         end
 

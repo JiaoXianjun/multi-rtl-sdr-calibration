@@ -115,6 +115,8 @@ for freq_idx = 1:length(freq)
     while 1 % read data at current frequency until success
         for i=1:num_dongle
             set_freq_tcp(tcp_obj{i}, current_freq); % set current frequency
+        end
+        for i=1:num_dongle
             [s_all(:,freq_idx,i), real_count(i)] = fread(tcp_obj{i}, 2*num_samples, 'uint8');
         end
 

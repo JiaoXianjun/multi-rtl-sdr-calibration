@@ -1,6 +1,7 @@
 % Jiao Xianjun (putaoshu@msn.com; putaoshu@gmail.com)
 % GSM broadcasting carrier FCCH scanning via multiple rtl-sdr dongles. Each dongle for each sub-band to speedup!
 % Learning GSM downlink frame structure from here: http://www.sharetechnote.com/html/FrameStructure_GSM.html
+% Tuning detection algorithm parameters in FCCH_coarse_position.m. such as th, max_offset, etc.
 % A script of project: https://github.com/JiaoXianjun/multi-rtl-sdr-calibration
 
 % Assume that you have installed rtl-sdr
@@ -36,8 +37,8 @@ gain = 0; % If this is larger than 0, the fixed gain will be set to dongles
 
 symbol_rate = (1625/6)*1e3; % GSM spec
 num_frame = 64; % You'd better have at least 51 frames (one multiframe)
-num_sym_per_slot = 625/4;
-num_slot_per_frame = 8;
+num_sym_per_slot = 625/4; % GSM spec
+num_slot_per_frame = 8; % GSM spec
 
 oversampling_ratio = 4;
 decimation_ratio_for_FCCH_rough_position = 8;
@@ -65,7 +66,6 @@ freq = vec2mat(freq, num_freq_per_sub_band);
 
 real_count = zeros(1, num_dongle);
 s = zeros(2*num_samples, num_dongle);
-% s_all = uint8( zeros(2*num_samples, num_freq_per_sub_band*num_dongle) );
 s_all = zeros(length(1:decimation_ratio_from_oversampling:num_samples), num_freq);
 
 % check if previous tce objects existed. if so clear them
@@ -121,7 +121,7 @@ for freq_idx = 1:num_freq_per_sub_band
             fread(tcp_obj{i}, 2*num_samples, 'uint8'); % flush to wait for its stable
         end
         for i=1:num_dongle
-            [s(:, i), real_count(i)] = fread(tcp_obj{i}, 2*num_samples, 'uint8');
+            [s(:, i), real_count(i)] = fread(tcp_obj{i}, 2*num_samples, 'uint8'); % read samples from multi-dongles
         end
         
         if sum(real_count-(2*num_samples)) ~= 0
@@ -130,7 +130,7 @@ for freq_idx = 1:num_freq_per_sub_band
             r = raw2iq(s);
             r = filter(coef, 1, r);
             for i=1:num_dongle
-                s_all(:, freq_idx + (i-1)*num_freq_per_sub_band) = r(1:decimation_ratio_from_oversampling:end, i);
+                s_all(:, freq_idx + (i-1)*num_freq_per_sub_band) = r(1:decimation_ratio_from_oversampling:end, i); % store data for FCCH detection
             end
             break;
         end
@@ -151,25 +151,25 @@ disp(['actual time cost ' num2str(e) ' ideal cost ' num2str(ideal_time_cost) ' e
 disp(' ');
 disp('Begin process ...');
 
-% Detect GSM FCCH for all frequencies, and save quality metric
+% Detect GSM FCCH for all frequencies, and save, display quality metric
 tic;
 snr = zeros(1, num_freq);
 num_hit = zeros(1, num_freq);
 tmp = freq.'; tmp = tmp(:).';
 for i=1:num_freq
-    [FCCH_pos, FCCH_snr]= FCCH_coarse_position(s_all(:,i), decimation_ratio_for_FCCH_rough_position);
-    if FCCH_pos ~= -1
+    [FCCH_pos, FCCH_snr]= FCCH_coarse_position(s_all(:,i), decimation_ratio_for_FCCH_rough_position); % detect FCCH position and SNR
+    if FCCH_pos ~= -1 % find multiple successive FCCH
         disp(['at ' num2str(tmp(i)*1e-6) 'MHz']);
     end
     diff_FCCH_pos = diff(FCCH_pos);
-    if length(FCCH_pos)>=3
-        a = abs(diff_FCCH_pos - 12500);
+    if length(FCCH_pos)>=3 % at least 3 successive FCCH hits
+        a = abs(diff_FCCH_pos - 12500); % intra multiframe
         a = a>50;
         if ~sum(a)
             snr(i) = mean(FCCH_snr);
             num_hit(i) = length(FCCH_pos);
         else
-            b = abs( diff_FCCH_pos(a) - (12500+1250) );
+            b = abs( diff_FCCH_pos(a) - (12500+1250) ); % cross multiframe
             b = b>50;
             if ~sum(b)
                 snr(i) = mean(FCCH_snr);
@@ -184,9 +184,9 @@ e1 = toc;
 disp(['time cost ' num2str(e1) ' scan/process ' num2str(e/e1)]);
 disp(['total time cost ' num2str(e1+e)]);
 
-% plot power spectrum (converted to dB)
+% plot FCCH quality metrics
 figure;
-format_string = {'b', 'r', 'k', 'm', 'g', 'c'};
+format_string = {'r', 'k', 'b', 'm', 'g', 'c'};
 for i=1:num_dongle
     subplot(2,1,1); bar(freq(i,:).*1e-6, snr( (i-1)*num_freq_per_sub_band+1: i*num_freq_per_sub_band), format_string{i}); hold on;
     subplot(2,1,2); bar(freq(i,:).*1e-6, num_hit( (i-1)*num_freq_per_sub_band+1: i*num_freq_per_sub_band), format_string{i}); hold on;
@@ -196,8 +196,8 @@ legend_string = cell(1, num_dongle);
 for i=1:num_dongle
     legend_string{i} = ['dongle ' num2str(i)];
 end
-subplot(2,1,1); legend(legend_string); title('FCCH rough SNR(dB) vs frequency');
-subplot(2,1,2); legend(legend_string); title('num FCCH hits vs frequency');
+subplot(2,1,1); legend(legend_string); title('FCCH rough SNR(dB) vs frequency'); xlabel('MHz'); ylabel('dB');
+subplot(2,1,2); legend(legend_string); title('num FCCH successive hits vs frequency'); xlabel('MHz'); ylabel('hits');
 
 filename = ['FCCH_scan_' num2str(start_freq) '_' num2str(end_freq) '_gain' num2str(gain) '_' num2str(num_dongle) 'dongles.mat'];
 save(filename, 'snr', 'num_hit', 'start_freq', 'end_freq', 'freq_step', 'observe_time', 'gain', 'sampling_rate', 'coef', 'freq');
