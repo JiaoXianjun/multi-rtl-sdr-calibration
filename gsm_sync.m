@@ -7,7 +7,7 @@
 % rtl_tcp -p 1236 -d 2
 % ...
 
-num_dongle = 1;
+num_dongle = 2;
 
 % freq = 939e6; % home
 freq = 957.4e6; % office. find some GSM downlink signal by multi_rtl_sdr_diversity_scanner.m!
@@ -63,7 +63,9 @@ for i=1:num_dongle
 end
 
 % flush
-fread(tcp_obj{i}, 2*num_sample, 'uint8');
+for i=1:num_dongle
+    fread(tcp_obj{i}, 2*num_sample, 'uint8');
+end
 
 % % % --------------------------- read and processing ----------------------------------
 % % % ---------------------------------------------------------------------------------
