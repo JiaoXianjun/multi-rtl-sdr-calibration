@@ -87,6 +87,8 @@ end
 for i=1:num_dongle
     set(tcp_obj{i}, 'InputBufferSize', 8*2*num_samples);
     set(tcp_obj{i}, 'Timeout', 60);
+end
+for i=1:num_dongle
     fopen(tcp_obj{i});
 end
 
@@ -142,6 +144,8 @@ ideal_time_cost = observe_time*num_freq_per_sub_band;
 % close TCP
 for i=1:num_dongle
     fclose(tcp_obj{i});
+end
+for i=1:num_dongle
     delete(tcp_obj{i});
 end
 clear tcp_obj;

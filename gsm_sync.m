@@ -15,6 +15,8 @@ freq = 957.4e6; % office. find some GSM downlink signal by multi_rtl_sdr_diversi
 symbol_rate = (1625/6)*1e3;
 oversampling_ratio = 4;
 decimation_ratio_for_FCCH_rough_position = 8;
+decimation_ratio_from_oversampling = oversampling_ratio*decimation_ratio_for_FCCH_rough_position;
+
 sampling_rate = symbol_rate*oversampling_ratio;
 
 num_frame = 2*51; % two multiframe (each has 51 frames)
@@ -29,6 +31,7 @@ real_count = zeros(1, num_dongle);
 coef = fir1(30, 200e3/sampling_rate);
 % freqz(coef, 1, 1024);
 
+format_string = {'b.-', 'r.-', 'k.-', 'g.-', 'c.-', 'm.-'};
 clf;
 close all;
 
@@ -69,7 +72,7 @@ end
 
 % % % --------------------------- read and processing ----------------------------------
 % % % ---------------------------------------------------------------------------------
-for idx=1:10
+for idx=1:1
     while 1 % read data from multiple dongles until success
         for i=1:num_dongle
             [s(:, i), real_count(i)] = fread(tcp_obj{i}, 2*num_sample, 'uint8');
@@ -89,11 +92,11 @@ for idx=1:10
     r = filter(coef, 1, r);
 
     for i=1:num_dongle
-        [FCCH_pos, FCCH_snr]= FCCH_coarse_position(r(1:(oversampling_ratio*decimation_ratio_for_FCCH_rough_position):end,i), decimation_ratio_for_FCCH_rough_position);
+        [FCCH_pos, FCCH_snr]= FCCH_coarse_position(r(1:decimation_ratio_from_oversampling:end,i), decimation_ratio_for_FCCH_rough_position);
         disp(['diff ' num2str(diff(FCCH_pos))]);
         disp(['snr ' num2str( mean(FCCH_snr) )]);
-        subplot(2,1,1); plot(FCCH_snr, 'b*-');
-        subplot(2,1,2); plot(diff(FCCH_pos), 'b*-');
+        subplot(2,1,1); plot(FCCH_snr, format_string{i}); hold on;
+        subplot(2,1,2); plot(FCCH_pos, format_string{i}); hold on;
         drawnow;
         if FCCH_pos ~= -1
             [SCH_pos, r_rate_correct] = SCH_corr_rate_correction(r(FCCH_pos:end,i), oversampling_ratio);
