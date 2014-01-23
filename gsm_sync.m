@@ -7,10 +7,10 @@
 % rtl_tcp -p 1236 -d 2
 % ...
 
-num_dongle = 2;
+num_dongle = 1;
 
 % freq = 939e6; % home
-freq = 957.4e6; % office. find some GSM downlink signal by multi_rtl_sdr_diversity_scanner.m!
+freq = 957.4e6; % office. find some GSM downlink signal by multi_rtl_sdr_gsm_FCCH_scanner.m!
 
 symbol_rate = (1625/6)*1e3;
 oversampling_ratio = 4;
@@ -30,6 +30,9 @@ real_count = zeros(1, num_dongle);
 % GSM channel filter for 4x oversampling
 coef = fir1(30, 200e3/sampling_rate);
 % freqz(coef, 1, 1024);
+
+% generate SCH training sequence
+sch_training_sequence = gsm_SCH_training_sequence_gen(oversampling_ratio);
 
 format_string = {'b.-', 'r.-', 'k.-', 'g.-', 'c.-', 'm.-'};
 clf;
@@ -93,13 +96,18 @@ for idx=1:1
 
     for i=1:num_dongle
         [FCCH_pos, FCCH_snr]= FCCH_coarse_position(r(1:decimation_ratio_from_oversampling:end,i), decimation_ratio_for_FCCH_rough_position);
-        disp(['diff ' num2str(diff(FCCH_pos))]);
-        disp(['snr ' num2str( mean(FCCH_snr) )]);
-        subplot(2,1,1); plot(FCCH_snr, format_string{i}); hold on;
-        subplot(2,1,2); plot(FCCH_pos, format_string{i}); hold on;
-        drawnow;
+        
+%         disp(['diff ' num2str(diff(FCCH_pos))]);
+%         disp(['snr ' num2str( mean(FCCH_snr) )]);
+%         subplot(2,1,1); plot(FCCH_snr, format_string{i}); hold on;
+%         subplot(2,1,2); plot(FCCH_pos, format_string{i}); hold on;
+%         drawnow;
+        
         if FCCH_pos ~= -1
-            [SCH_pos, r_rate_correct] = SCH_corr_rate_correction(r(FCCH_pos:end,i), oversampling_ratio);
+            [SCH_pos, r_rate_correct] = SCH_corr_rate_correction(r(:,i), FCCH_pos, sch_training_sequence, oversampling_ratio);
+            disp(['diff ' num2str(diff(SCH_pos))]);
+            plot(SCH_pos, format_string{i}); hold on;
+            drawnow;
         end
     end
 end
