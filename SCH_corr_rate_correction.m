@@ -1,4 +1,4 @@
-function [SCH_pos, r] = SCH_corr_rate_correction(s, FCCH_pos, sch_training_sequence, oversampling_ratio)
+function [SCH_pos, r, corr_val] = SCH_corr_rate_correction(s, FCCH_pos, sch_training_sequence, oversampling_ratio)
 s = s(:);
 
 num_sym_per_slot = 625/4;
@@ -17,7 +17,9 @@ SCH_pos = inf.*ones(1, num_fcch_hit);
 len_s_ov = length(s);
 len_s = floor( len_s_ov/oversampling_ratio );
 
-max_offset = 4*oversampling_ratio;
+max_offset = 16*oversampling_ratio;
+% sch_training_sequence = s(FCCH_pos(1) + fix_offset_from_fcch_pos_ov : FCCH_pos(1) + fix_offset_from_fcch_pos_ov + length(sch_training_sequence)-1);
+% sch_training_sequence = sch_training_sequence(:);
 for i=1:num_fcch_hit
     training_sp = FCCH_pos(i) + fix_offset_from_fcch_pos_ov;
     

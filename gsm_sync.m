@@ -10,8 +10,8 @@
 num_dongle = 1;
 
 % freq = 940.8e6; % home
-% freq = 939e6; % home
-freq = 957.4e6; % office. find some GSM downlink signal by multi_rtl_sdr_gsm_FCCH_scanner.m!
+freq = 939e6; % home
+% freq = 957.4e6; % office. find some GSM downlink signal by multi_rtl_sdr_gsm_FCCH_scanner.m!
 
 symbol_rate = (1625/6)*1e3;
 oversampling_ratio = 8;
@@ -111,9 +111,15 @@ for idx=1:1
             disp(['FCCH fine 1st diff ' num2str(diff(first_round_pos))]);
             disp(['FCCH fine     diff ' num2str(diff(FCCH_pos))]);
             if length(FCCH_pos) >= 5
-                [SCH_pos, r_rate_correct] = SCH_corr_rate_correction(r_correct, FCCH_pos, sch_training_sequence, oversampling_ratio);
+                [SCH_pos, r_rate_correct, corr_val] = SCH_corr_rate_correction(r_correct, FCCH_pos, sch_training_sequence, oversampling_ratio);
                 disp(['SCH  diff ' num2str(diff(SCH_pos))]);
-                plot(SCH_pos, format_string{i}); hold on;
+%                 tmp = r_correct(1: (2*oversampling_ratio*num_slot_per_frame * num_sym_per_slot));
+                plot(corr_val);
+%                 tmp = angle(tmp(2:end)./tmp(1:end-1));
+%                 tmp = angle(tmp);
+%                 fo = tmp.*sampling_rate./(2*pi);
+%                 subplot(2,1,1); plot(angle(tmp), 'b'); hold on;
+%                 subplot(2,1,2); plot(abs(tmp), 'b'); hold on;
                 drawnow;
             end
         end

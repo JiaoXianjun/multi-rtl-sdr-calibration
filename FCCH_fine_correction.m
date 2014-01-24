@@ -123,8 +123,10 @@ if num_fcch >= 5
     fcch_mat = fcch_mat.*exp( -1i.*((0:(fft_len-1))')*int_phase_rotate );
     phase_rotate = exp( 1i.*angle( fcch_mat(2:end,:) ) )./exp( 1i.*angle( fcch_mat(1:(end-1),:) ) );
     phase_rotate = angle(mean(phase_rotate,1));
-    fo = mean( sampling_rate.*(int_phase_rotate + phase_rotate)./(2*pi) );
+    fo = sampling_rate.*(int_phase_rotate + phase_rotate)./(2*pi);
+    disp(['Freq FCCH ' num2str(fo)]);
     target_freq = symbol_rate/4;
+    fo = mean(fo);
     carrier_ppm = 1e6*(fo - target_freq)/carrier_freq;
     
     comp_freq = target_freq - fo;
