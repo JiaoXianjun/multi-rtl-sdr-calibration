@@ -3,8 +3,7 @@ hit_flag = false;
 hit_idx = -1;
 hit_snr = inf;
 
-for count=1:length(target_set)
-    i = target_set(count);
+for i=target_set(1):target_set(2)
     chn_tmp = s(i:(i+fft_len-1));
     chn_tmp = abs(fft(chn_tmp, fft_len)).^2;
 

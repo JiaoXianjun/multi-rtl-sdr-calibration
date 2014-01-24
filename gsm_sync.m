@@ -9,12 +9,12 @@
 
 num_dongle = 1;
 
-freq = 940.8e6; % home
+% freq = 940.8e6; % home
 % freq = 939e6; % home
-% freq = 957.4e6; % office. find some GSM downlink signal by multi_rtl_sdr_gsm_FCCH_scanner.m!
+freq = 957.4e6; % office. find some GSM downlink signal by multi_rtl_sdr_gsm_FCCH_scanner.m!
 
 symbol_rate = (1625/6)*1e3;
-oversampling_ratio = 4;
+oversampling_ratio = 8;
 decimation_ratio_for_FCCH_rough_position = 8;
 decimation_ratio_from_oversampling = oversampling_ratio*decimation_ratio_for_FCCH_rough_position;
 
@@ -98,19 +98,24 @@ for idx=1:1
     for i=1:num_dongle
         [FCCH_pos, FCCH_snr]= FCCH_coarse_position(r(1:decimation_ratio_from_oversampling:end,i), decimation_ratio_for_FCCH_rough_position);
         
-%         disp(['diff ' num2str(diff(FCCH_pos))]);
+        disp(['FCCH coarse diff ' num2str(diff(FCCH_pos))]);
 %         disp(['snr ' num2str( mean(FCCH_snr) )]);
 %         subplot(2,1,1); plot(FCCH_snr, format_string{i}); hold on;
 %         subplot(2,1,2); plot(FCCH_pos, format_string{i}); hold on;
 %         drawnow;
         
-        if FCCH_pos ~= -1
-            [FCCH_pos, FCCH_snr, r_correct] = FCCH_fine_correction(r(:,i), FCCH_pos, oversampling_ratio);
-            disp(['FCCH diff ' num2str(diff(FCCH_pos))]);
-            [SCH_pos, r_rate_correct] = SCH_corr_rate_correction(r(:,i), FCCH_pos, sch_training_sequence, oversampling_ratio);
-            disp(['SCH  diff ' num2str(diff(SCH_pos))]);
-            plot(SCH_pos, format_string{i}); hold on;
-            drawnow;
+        if length(FCCH_pos) >= 5
+            [FCCH_pos, first_round_pos, FCCH_snr, sampling_ppm, carrier_ppm, r_correct] = FCCH_fine_correction(r(:,i), FCCH_pos, oversampling_ratio, freq);
+            disp(['sampling error ppm ' num2str(sampling_ppm)]);
+            disp([' carrier error ppm ' num2str(carrier_ppm)]);
+            disp(['FCCH fine 1st diff ' num2str(diff(first_round_pos))]);
+            disp(['FCCH fine     diff ' num2str(diff(FCCH_pos))]);
+            if length(FCCH_pos) >= 5
+                [SCH_pos, r_rate_correct] = SCH_corr_rate_correction(r_correct, FCCH_pos, sch_training_sequence, oversampling_ratio);
+                disp(['SCH  diff ' num2str(diff(SCH_pos))]);
+                plot(SCH_pos, format_string{i}); hold on;
+                drawnow;
+            end
         end
     end
 end

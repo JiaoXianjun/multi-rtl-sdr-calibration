@@ -29,8 +29,11 @@ num_sym_between_FCCH1 = 11*num_slot_per_frame*num_sym_per_slot; % in case the la
 num_sym_between_FCCH_decimate = round(num_sym_between_FCCH/decimation_ratio);
 num_sym_between_FCCH_decimate1 = round(num_sym_between_FCCH1/decimation_ratio);
 
-position = hit_idx;
-snr = hit_snr;
+max_num_fcch = ceil(len/(10*num_sym_per_frame/decimation_ratio));
+position = zeros(1, max_num_fcch);
+snr = zeros(1, max_num_fcch);
+position(1) = hit_idx;
+snr(1) = hit_snr;
 
 set_idx = 1;
 max_offset = 5;
@@ -41,16 +44,17 @@ while 1
         break;
     end
 
-    i_set = next_position + (-max_offset:max_offset);
+%     i_set = next_position + (-max_offset:max_offset);
 %     i_set(i_set<1) = 1;
 %     i_set(i_set>(len - (fft_len-1))) = (len - (fft_len-1));
+    i_set = next_position + [-max_offset, max_offset];
 
     [hit_flag, hit_idx, hit_snr] = specific_fft_snr_fix_avg(s, i_set, fft_len, th, hit_avg_snr); % fft detection at specific position
     
     if hit_flag
-        position = [position hit_idx];
-        snr = [snr hit_snr];
         set_idx = set_idx + 1;
+        position(set_idx) = hit_idx;
+        snr(set_idx) = hit_snr;
     else
         next_position = position(set_idx) + num_sym_between_FCCH_decimate1;% predicted position of next FCCH in the next multiframe
         
@@ -58,21 +62,25 @@ while 1
             break;
         end
 
-        i_set = next_position + (-max_offset:max_offset);
+%         i_set = next_position + (-max_offset:max_offset);
 %         i_set(i_set<1) = 1;
 %         i_set(i_set>(len - (fft_len-1))) = (len - (fft_len-1));
-
+        i_set = next_position + [-max_offset, max_offset];
+        
         [hit_flag, hit_idx, hit_snr] = specific_fft_snr_fix_avg(s, i_set, fft_len, th, hit_avg_snr); % fft detection at specific position
         
         if hit_flag
-            position = [position hit_idx];
-            snr = [snr hit_snr];
             set_idx = set_idx + 1;
+            position(set_idx) = hit_idx;
+            snr(set_idx) = hit_snr;
         else
             break;
         end
     end
 end
+
+position = position(1:set_idx);
+snr = snr(1:set_idx);
 
 position = (position-1)*decimation_ratio + 1;
 disp(['Find successive ' num2str(length(position)) ' FCCH. position: ' num2str(position)]);

@@ -21,7 +21,7 @@
 % Change following parameters as you need:
 
 % Number of dongles you have connected to your computer
-num_dongle = 1; % more dongles, much faster.
+num_dongle = 2; % more dongles, much faster.
 
 % Beginning of the band you are interested in
 % start_freq = 910e6; % for test
