@@ -7,7 +7,7 @@
 % rtl_tcp -p 1236 -d 2
 % ...
 
-num_dongle = 1;
+num_dongle = 2;
 
 % freq = 940.8e6; % home
 freq = 939e6; % home
@@ -94,10 +94,11 @@ for idx=1:1
 
     % channel filter
     r = filter(coef, 1, r);
-
+    
+    phase_seq = cell(1,2);
     for i=1:num_dongle
         [FCCH_pos, FCCH_snr]= FCCH_coarse_position(r(1:decimation_ratio_from_oversampling:end,i), decimation_ratio_for_FCCH_rough_position);
-        
+        disp(['FCCH coarse  snr ' num2str(FCCH_snr)]);
         disp(['FCCH coarse diff ' num2str(diff(FCCH_pos))]);
 %         disp(['snr ' num2str( mean(FCCH_snr) )]);
 %         subplot(2,1,1); plot(FCCH_snr, format_string{i}); hold on;
@@ -110,20 +111,23 @@ for idx=1:1
             disp([' carrier error ppm ' num2str(carrier_ppm)]);
             disp(['FCCH fine 1st diff ' num2str(diff(first_round_pos))]);
             disp(['FCCH fine     diff ' num2str(diff(FCCH_pos))]);
+            disp(['FCCH fine      snr ' num2str(FCCH_snr)]);
             if length(FCCH_pos) >= 5
-                [SCH_pos, r_rate_correct, corr_val] = SCH_corr_rate_correction(r_correct, FCCH_pos, sch_training_sequence, oversampling_ratio);
+                [SCH_pos, sampling_ppm, corr_val, phase_seq{i}, r_rate_correct] = SCH_corr_rate_correction(r_correct, FCCH_pos, sch_training_sequence, oversampling_ratio);
+                disp(['SCH sampling error ppm ' num2str(sampling_ppm)]);
                 disp(['SCH  diff ' num2str(diff(SCH_pos))]);
 %                 tmp = r_correct(1: (2*oversampling_ratio*num_slot_per_frame * num_sym_per_slot));
-                plot(corr_val);
+                subplot(2,1,i); plot(phase_seq{i});
 %                 tmp = angle(tmp(2:end)./tmp(1:end-1));
 %                 tmp = angle(tmp);
 %                 fo = tmp.*sampling_rate./(2*pi);
 %                 subplot(2,1,1); plot(angle(tmp), 'b'); hold on;
 %                 subplot(2,1,2); plot(abs(tmp), 'b'); hold on;
-                drawnow;
+%                 drawnow;
             end
         end
     end
+    figure; plot(phase_seq{1} - phase_seq{2});
 end
 % for i=1:num_dongle
 %     figure(i);

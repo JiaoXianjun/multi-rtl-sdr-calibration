@@ -21,7 +21,7 @@
 % Change following parameters as you need:
 
 % Number of dongles you have connected to your computer
-num_dongle = 2; % more dongles, much faster.
+num_dongle = 1; % more dongles, much faster.
 
 % Beginning of the band you are interested in
 % start_freq = 910e6; % for test
@@ -38,9 +38,9 @@ gain = 0; % If this is larger than 0, the fixed gain will be set to dongles
 symbol_rate = (1625/6)*1e3; % GSM spec
 num_frame = 64; % You'd better have at least 51 frames (one multiframe)
 num_sym_per_slot = 625/4; % GSM spec
-num_slot_per_frame = 8; % GSM spec
+num_slot_per_frame = 4; % GSM spec
 
-oversampling_ratio = 4;
+oversampling_ratio = 8;
 decimation_ratio_for_FCCH_rough_position = 8;
 decimation_ratio_from_oversampling = oversampling_ratio*decimation_ratio_for_FCCH_rough_position;
 

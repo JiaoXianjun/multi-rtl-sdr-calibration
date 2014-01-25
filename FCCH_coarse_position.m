@@ -83,4 +83,4 @@ position = position(1:set_idx);
 snr = snr(1:set_idx);
 
 position = (position-1)*decimation_ratio + 1;
-disp(['Find successive ' num2str(length(position)) ' FCCH. position: ' num2str(position)]);
+disp(['Find successive(rough) ' num2str(length(position)) ' FCCH. pos ' num2str(position)]);

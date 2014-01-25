@@ -10,6 +10,7 @@ sampling_rate = symbol_rate*oversampling_ratio;
 
 len_FCCH_CW = 148; % GSM spec. 1x rate
 fft_len = len_FCCH_CW*oversampling_ratio;
+half_noise_len = ceil( (fft_len*200e3/sampling_rate)/2 );
 
 num_fcch_hit = length(base_position);
 FCCH_pos = inf.*ones(1, num_fcch_hit);
@@ -42,7 +43,7 @@ for i=1:num_fcch_hit
     [~, max_idx] = max(fft_peak_val);
     
     if max_idx==1 || max_idx==len
-        disp('FCCH Warning! no peak around base position is found!');
+        disp('FCCH fine Warning! No peak around base position is found!');
         FCCH_pos = -1;
         return;
     else
@@ -66,7 +67,7 @@ if last_idx >= 5
     num_sym_between_FCCH_ov = 10*num_sym_per_frame*oversampling_ratio;
     num_sym_between_FCCH1_ov = 11*num_sym_per_frame*oversampling_ratio; % in case the last idle frame of the multiframe
     
-    max_ppm = 250;
+    max_ppm = 1600;
     max_th = floor( num_sym_between_FCCH_ov*max_ppm*1e-6 );
     max_th1 = floor( num_sym_between_FCCH1_ov*max_ppm*1e-6 );
     
@@ -79,7 +80,12 @@ if last_idx >= 5
     num_distance_b = sum(b_logical);
     
     if (num_distance_a + num_distance_b) ~= last_idx-1
-        disp('It is abnormal!');
+        disp('FCCH fine Warning! Kinds of pos diff more than 2!');
+        disp(['Expected len ' num2str(last_idx-1) '. Actual ' num2str([num_distance_a num_distance_b])]);
+        disp(['diff intra multiframe max th ' num2str(max_th) ' actual ' num2str(a)]);
+        disp(['diff inter multiframe max th ' num2str(max_th1) ' actual ' num2str(b)]);
+        FCCH_pos = -1;
+        first_round_pos = -1;
         return;
     end
     
@@ -124,7 +130,7 @@ if num_fcch >= 5
     phase_rotate = exp( 1i.*angle( fcch_mat(2:end,:) ) )./exp( 1i.*angle( fcch_mat(1:(end-1),:) ) );
     phase_rotate = angle(mean(phase_rotate,1));
     fo = sampling_rate.*(int_phase_rotate + phase_rotate)./(2*pi);
-    disp(['Freq FCCH ' num2str(fo)]);
+    disp(['FCCH fine freq ' num2str(fo)]);
     target_freq = symbol_rate/4;
     fo = mean(fo);
     carrier_ppm = 1e6*(fo - target_freq)/carrier_freq;
@@ -132,4 +138,17 @@ if num_fcch >= 5
     comp_freq = target_freq - fo;
     comp_phase_rotate = comp_freq*2*pi/sampling_rate;
     r = r.*exp(1i.*(0:(length(r)-1)).*comp_phase_rotate);
+    
+    fcch_mat = fcch_mat.*exp( -1i.*((0:(fft_len-1))')*phase_rotate );
+    fd_fcch = abs(fft(fcch_mat, fft_len, 1)).^2;
+    signal_power = sum(fd_fcch([1:3, (end-1):end],:), 1);
+    noise_power = sum(fd_fcch([4:half_noise_len, (end-half_noise_len+2):(end-2)],:), 1);
+    FCCH_snr = 10.*log10(signal_power./noise_power);
+    
+    if sum(FCCH_snr<5) > 0
+        disp('FCCH fine: some FCCH SNR seems pretty low!');
+        FCCH_pos = -1;
+        first_round_pos = -1;
+        return;
+    end
 end
