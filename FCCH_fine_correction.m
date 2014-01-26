@@ -1,5 +1,4 @@
 function [FCCH_pos, first_round_pos, FCCH_snr, sampling_ppm, carrier_ppm, r] = FCCH_fine_correction(s, base_position, oversampling_ratio, carrier_freq)
-first_round_pos = 0;
 FCCH_snr = 0;
 sampling_ppm = 0;
 carrier_ppm = 0;
@@ -18,7 +17,7 @@ FCCH_pos = inf.*ones(1, num_fcch_hit);
 len_s_ov = length(s);
 len_s = floor( len_s_ov/oversampling_ratio );
 
-max_offset = 48;
+max_offset = 64;
 last_idx = 0;
 for i=1:num_fcch_hit
     position = base_position(i);
@@ -44,8 +43,10 @@ for i=1:num_fcch_hit
     
     if max_idx==1 || max_idx==len
         disp('FCCH fine Warning! No peak around base position is found!');
-        FCCH_pos = -1;
-        return;
+        FCCH_pos(i) = sp + max_idx - 1;
+        last_idx = i;
+%         FCCH_pos = -1;
+%         return;
     else
         FCCH_pos(i) = sp + max_idx - 1;
         last_idx = i;
@@ -56,8 +57,10 @@ first_round_pos = FCCH_pos;
 
 % estimate and correct sampling time error
 if last_idx >= 5
-    sp = FCCH_pos(1);
-    r = s(sp:end);
+%     sp = FCCH_pos(1);
+%     r = s(sp:end);
+    r = s;
+    first_FCCH_pos = FCCH_pos(1);
     diff_seq = diff(FCCH_pos);
     
     num_sym_per_slot = 625/4;
@@ -67,7 +70,7 @@ if last_idx >= 5
     num_sym_between_FCCH_ov = 10*num_sym_per_frame*oversampling_ratio;
     num_sym_between_FCCH1_ov = 11*num_sym_per_frame*oversampling_ratio; % in case the last idle frame of the multiframe
     
-    max_ppm = 1600;
+    max_ppm = 2300;
     max_th = floor( num_sym_between_FCCH_ov*max_ppm*1e-6 );
     max_th1 = floor( num_sym_between_FCCH1_ov*max_ppm*1e-6 );
     
@@ -108,6 +111,9 @@ if last_idx >= 5
     step_size(a_logical) = num_sym_between_FCCH_ov;
     step_size(b_logical) = num_sym_between_FCCH1_ov;
     FCCH_pos = cumsum([1 step_size]);
+    
+    first_FCCH_pos = round(first_FCCH_pos/(1+mean_ex_percent))+1;
+    FCCH_pos = FCCH_pos + first_FCCH_pos - 1;
     
     if (FCCH_pos(end) + fft_len-1) > length(r)
         FCCH_pos = FCCH_pos(1:(end-1));

@@ -7,11 +7,11 @@
 % rtl_tcp -p 1236 -d 2
 % ...
 
-num_dongle = 2;
+num_dongle = 1;
 
-% freq = 940.8e6; % home
-freq = 939e6; % home
-% freq = 957.4e6; % office. find some GSM downlink signal by multi_rtl_sdr_gsm_FCCH_scanner.m!
+% freq = 940.8e6; % home. Find some GSM downlink signal by multi_rtl_sdr_gsm_FCCH_scanner.m!
+% freq = 939e6; % home. Find some GSM downlink signal by multi_rtl_sdr_gsm_FCCH_scanner.m!
+freq = 957.4e6; % office. Find some GSM downlink signal by multi_rtl_sdr_gsm_FCCH_scanner.m!
 
 symbol_rate = (1625/6)*1e3;
 oversampling_ratio = 8;
@@ -20,7 +20,7 @@ decimation_ratio_from_oversampling = oversampling_ratio*decimation_ratio_for_FCC
 
 sampling_rate = symbol_rate*oversampling_ratio;
 
-num_frame = 2*51; % two multiframe (each has 51 frames)
+num_frame = 4*51; % two multiframe (each has 51 frames)
 num_sym_per_slot = 625/4;
 num_slot_per_frame = 8;
 
@@ -28,8 +28,8 @@ num_sample = oversampling_ratio * num_frame * num_slot_per_frame * num_sym_per_s
 s = zeros(2*num_sample, num_dongle);
 real_count = zeros(1, num_dongle);
 
-% GSM channel filter for 4x oversampling
-coef = fir1(30, 200e3/sampling_rate);
+% GSM channel filter for oversampling
+coef = fir1(46, 200e3/sampling_rate);
 % freqz(coef, 1, 1024);
 
 % generate SCH training sequence
@@ -42,7 +42,6 @@ close all;
 if ~isempty(who('tcp_obj'))
     for i=1:length(tcp_obj)
         fclose(tcp_obj{i});
-        pause(1);
         delete(tcp_obj{i});
     end
     clear tcp_obj;
@@ -56,6 +55,8 @@ end
 for i=1:num_dongle
     set(tcp_obj{i}, 'InputBufferSize', 8*2*num_sample);
     set(tcp_obj{i}, 'Timeout', 1);
+end
+for i=1:num_dongle
     fopen(tcp_obj{i});
 end
 
@@ -95,29 +96,26 @@ for idx=1:1
     % channel filter
     r = filter(coef, 1, r);
     
-    phase_seq = cell(1,2);
+%     phase_seq = cell(1,2);
     for i=1:num_dongle
+        disp(['dongle ' num2str(i) ' ------------------------------------']);
         [FCCH_pos, FCCH_snr]= FCCH_coarse_position(r(1:decimation_ratio_from_oversampling:end,i), decimation_ratio_for_FCCH_rough_position);
-        disp(['FCCH coarse  snr ' num2str(FCCH_snr)]);
+        disp(['FCCH coarse  SNR ' num2str(FCCH_snr)]);
         disp(['FCCH coarse diff ' num2str(diff(FCCH_pos))]);
-%         disp(['snr ' num2str( mean(FCCH_snr) )]);
-%         subplot(2,1,1); plot(FCCH_snr, format_string{i}); hold on;
-%         subplot(2,1,2); plot(FCCH_pos, format_string{i}); hold on;
-%         drawnow;
-        
+
         if length(FCCH_pos) >= 5
             [FCCH_pos, first_round_pos, FCCH_snr, sampling_ppm, carrier_ppm, r_correct] = FCCH_fine_correction(r(:,i), FCCH_pos, oversampling_ratio, freq);
-            disp(['sampling error ppm ' num2str(sampling_ppm)]);
-            disp([' carrier error ppm ' num2str(carrier_ppm)]);
-            disp(['FCCH fine 1st diff ' num2str(diff(first_round_pos))]);
-            disp(['FCCH fine     diff ' num2str(diff(FCCH_pos))]);
-            disp(['FCCH fine      snr ' num2str(FCCH_snr)]);
+            disp(['FCCH   fine   diff ' num2str(diff(first_round_pos))]);
+            disp(['FCCH   fine    SNR ' num2str(FCCH_snr)]);
+            disp(['FCCH sampling error ppm ' num2str(sampling_ppm)]);
+            disp(['FCCH carrier error ppm ' num2str(carrier_ppm)]);
             if length(FCCH_pos) >= 5
-                [SCH_pos, sampling_ppm, corr_val, phase_seq{i}, r_rate_correct] = SCH_corr_rate_correction(r_correct, FCCH_pos, sch_training_sequence, oversampling_ratio);
-                disp(['SCH sampling error ppm ' num2str(sampling_ppm)]);
-                disp(['SCH  diff ' num2str(diff(SCH_pos))]);
+                [FCCH_burst, SCH_burst, BCCH_burst, first_round_pos, sampling_ppm] = SCH_corr_rate_correction(r_correct, FCCH_pos, sch_training_sequence, oversampling_ratio);
+                disp(['SCH    fine   diff ' num2str(diff(first_round_pos))]);
+                disp(['SCH  sampling error ppm ' num2str(sampling_ppm)]);
 %                 tmp = r_correct(1: (2*oversampling_ratio*num_slot_per_frame * num_sym_per_slot));
-                subplot(2,1,i); plot(phase_seq{i});
+%                 subplot(num_dongle,1,i); plot(corr_val);
+%                 subplot(2,1,i); plot(phase_seq{i});
 %                 tmp = angle(tmp(2:end)./tmp(1:end-1));
 %                 tmp = angle(tmp);
 %                 fo = tmp.*sampling_rate./(2*pi);
@@ -127,7 +125,7 @@ for idx=1:1
             end
         end
     end
-    figure; plot(phase_seq{1} - phase_seq{2});
+%     figure; plot(phase_seq{1} - phase_seq{2});
 end
 % for i=1:num_dongle
 %     figure(i);
@@ -139,7 +137,8 @@ end
 % close obj
 for i=1:num_dongle
     fclose(tcp_obj{i});
-    pause(1);
+end
+for i=1:num_dongle
     delete(tcp_obj{i});
 end
 clear tcp_obj;

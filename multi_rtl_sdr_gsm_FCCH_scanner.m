@@ -86,7 +86,7 @@ end
 % set some parameters to tcp objects, and open them.
 for i=1:num_dongle
     set(tcp_obj{i}, 'InputBufferSize', 8*2*num_samples);
-    set(tcp_obj{i}, 'Timeout', 60);
+    set(tcp_obj{i}, 'Timeout', 2);
 end
 for i=1:num_dongle
     fopen(tcp_obj{i});
