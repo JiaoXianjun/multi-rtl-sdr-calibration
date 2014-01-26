@@ -1,7 +1,8 @@
-function s = gsm_SCH_training_sequence_gen(oversampling_ratio)
-filename = ['gsm_SCH_training_sequence_' num2str(oversampling_ratio) 'x.mat'];
+function s = gsm_normal_training_sequence_gen(oversampling_ratio)
+filename = ['gsm_normal_training_sequence_' num2str(oversampling_ratio) 'x.mat'];
 
 if isempty(dir(filename))
+    
     sample_per_symbol = oversampling_ratio;
     pulse_length = 4;
     % mod_idx = 0.25; % GSM spec
@@ -10,9 +11,14 @@ if isempty(dir(filename))
     hMod = comm.GMSKModulator('BitInput', true, 'BandwidthTimeProduct', BT, 'PulseLength', pulse_length, 'SamplesPerSymbol', sample_per_symbol);
 
     % extended training sequence bits
-    data = [1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, ...
-    0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, ...
-    1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1].';
+    data = [0,0,1,0,0,1,0,1,1,1,0,0,0,0,1,0,0,0,1,0,0,1,0,1,1,1;
+            0,0,1,0,1,1,0,1,1,1,0,1,1,1,1,0,0,0,1,0,1,1,0,1,1,1;
+            0,1,0,0,0,0,1,1,1,0,1,1,1,0,1,0,0,1,0,0,0,0,1,1,1,0;
+            0,1,0,0,0,1,1,1,1,0,1,1,0,1,0,0,0,1,0,0,0,1,1,1,1,0;
+            0,0,0,1,1,0,1,0,1,1,1,0,0,1,0,0,0,0,0,1,1,0,1,0,1,1;
+            0,1,0,0,1,1,1,0,1,0,1,1,0,0,0,0,0,1,0,0,1,1,1,0,1,0;
+            1,0,1,0,0,1,1,1,1,1,0,1,1,0,0,0,1,0,1,0,0,1,1,1,1,1;
+            1,1,1,0,1,1,1,1,0,0,0,1,0,0,1,0,1,1,1,0,1,1,1,1,0,0].';
 
     % 
     % % CTS synchronization
@@ -25,16 +31,23 @@ if isempty(dir(filename))
     % 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0].';
 
     % data = ~abs(diff([data(end:-1:1); 0]));
-    data = ~abs(diff([0; data]));
+    data = ~abs(diff([zeros(1, size(data,2)); data]));
     % data = [1; data];
     % for i=2:length(data)
     %     data(i) = xor(data(i), data(i-1));
     % end
     % data = ~data(2:end);
 
-    s = step(hMod, data); 
-    save(filename, 's');
+    len_seq = 26*oversampling_ratio;
+    num_seq = 8;
+    s = zeros(len_seq, num_seq);
+    for i=1:num_seq
+        reset(hMod);
+        s(:,i) = step(hMod, data(:,i));
+    end
     
+    save(filename, 's');
+
 else
     s = load(filename);
     s = s.s;

@@ -34,6 +34,7 @@ coef = fir1(46, 200e3/sampling_rate);
 
 % generate SCH training sequence
 sch_training_sequence = gsm_SCH_training_sequence_gen(oversampling_ratio);
+normal_training_sequence = gsm_normal_training_sequence_gen(oversampling_ratio);
 
 format_string = {'b.-', 'r.-', 'k.-', 'g.-', 'c.-', 'm.-'};
 clf;
@@ -113,6 +114,9 @@ for idx=1:1
                 [FCCH_burst, SCH_burst, BCCH_burst, first_round_pos, sampling_ppm] = SCH_corr_rate_correction(r_correct, FCCH_pos, sch_training_sequence, oversampling_ratio);
                 disp(['SCH    fine   diff ' num2str(diff(first_round_pos))]);
                 disp(['SCH  sampling error ppm ' num2str(sampling_ppm)]);
+                fcch_freq = FCCH_demod(FCCH_burst, oversampling_ratio);
+                [demod_info_sch, chn_fd_sch] = SCH_demod(SCH_burst, sch_training_sequence, oversampling_ratio);
+                [demod_info_bcch, chn_fd_bcch] = BCCH_demod(BCCH_burst, normal_training_sequence, oversampling_ratio);
 %                 tmp = r_correct(1: (2*oversampling_ratio*num_slot_per_frame * num_sym_per_slot));
 %                 subplot(num_dongle,1,i); plot(corr_val);
 %                 subplot(2,1,i); plot(phase_seq{i});
