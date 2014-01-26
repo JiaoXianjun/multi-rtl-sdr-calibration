@@ -19,9 +19,9 @@ fix_offset_from_fcch_pos_ov = fix_offset_from_fcch_pos*oversampling_ratio;
 num_fcch_hit = length(FCCH_pos);
 SCH_pos = inf.*ones(1, num_fcch_hit);
 
-FCCH_burst = zeros(num_fcch_hit, num_sym_per_slot_ov);
-SCH_burst = zeros(num_fcch_hit, num_sym_per_slot_ov);
-BCCH_burst = zeros(ceil(num_fcch_hit/5), 4*num_sym_per_slot_ov);
+FCCH_burst = zeros(num_sym_per_slot_ov, num_fcch_hit);
+SCH_burst = zeros(num_sym_per_slot_ov, num_fcch_hit);
+BCCH_burst = zeros(4*num_sym_per_slot_ov, ceil(num_fcch_hit/5));
 
 len_s_ov = length(s);
 
@@ -137,12 +137,12 @@ if num_sch >= 5
     for i=1:num_sch
         sp = SCH_pos(i)-fix_offset_from_fcch_pos_ov;
         ep = sp + num_sym_per_slot_ov-1;
-        FCCH_burst(i,:) = r(sp:ep);
+        FCCH_burst(:,i) = r(sp:ep);
         
         sp = SCH_pos(i)-len_pre_training_sequence_ov;
         ep = sp + num_sym_per_slot_ov-1;
         if ep<=length(r)
-            SCH_burst(sch_idx,:) = r(sp:ep);
+            SCH_burst(:, sch_idx) = r(sp:ep);
             sch_idx = sch_idx + 1;
         else
             break;
@@ -155,7 +155,7 @@ if num_sch >= 5
                 sp = sch_sp + i*num_sym_per_frame_ov;
                 ep = sp + num_sym_per_slot_ov-1;
                 if ep<=length(r)
-                    BCCH_burst(bcch_idx, ((idx-1)*num_sym_per_slot_ov + 1): (idx*num_sym_per_slot_ov) ) = r(sp:ep);
+                    BCCH_burst(((idx-1)*num_sym_per_slot_ov + 1): (idx*num_sym_per_slot_ov), bcch_idx ) = r(sp:ep);
                 else
                     runout_flag = idx;
                     break;
@@ -171,9 +171,9 @@ if num_sch >= 5
         end
     end
     
-    FCCH_burst = FCCH_burst(1:i,:);
-    SCH_burst = SCH_burst(1:(sch_idx-1),:);
-    BCCH_burst = BCCH_burst(1:(bcch_idx-1),:);
+    FCCH_burst = FCCH_burst(:, 1:i);
+    SCH_burst = SCH_burst(:, 1:(sch_idx-1));
+    BCCH_burst = BCCH_burst(:, 1:(bcch_idx-1));
 end
 
 % num_sch = length(SCH_pos);

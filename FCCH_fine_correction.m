@@ -145,6 +145,24 @@ if num_fcch >= 5
     comp_phase_rotate = comp_freq*2*pi/sampling_rate;
     r = r.*exp(1i.*(0:(length(r)-1)).*comp_phase_rotate);
     
+%     % -----------------test on line-------------------------
+%     fcch_mat = zeros(fft_len, num_fcch);
+%     for i=1:num_fcch
+%         sp = FCCH_pos(i);
+%         fcch_mat(:,i) = r(sp:(sp+fft_len-1));
+%     end
+%     fd_fcch = abs(fft(fcch_mat, fft_len, 1)).^2;
+%     fd_fcch = [fd_fcch( ((fft_len/2)+1):end, : ); fd_fcch( 1:(fft_len/2), : )];
+%     [~, max_idx] = max(fd_fcch, [], 1);
+%     int_phase_rotate = 2.*pi.*(max_idx - ((fft_len/2) + 1 ) )./fft_len;
+%     fcch_mat = fcch_mat.*exp( -1i.*((0:(fft_len-1))')*int_phase_rotate );
+%     phase_rotate = exp( 1i.*angle( fcch_mat(2:end,:) ) )./exp( 1i.*angle( fcch_mat(1:(end-1),:) ) );
+%     phase_rotate = angle(mean(phase_rotate,1));
+%     fo = sampling_rate.*(int_phase_rotate + phase_rotate)./(2*pi);
+%     disp(['FCCH fine freq ' num2str(fo)]);
+%     disp(['FCCH fine mean freq ' num2str(mean(fo))]);
+%     % -----------------end of test on line-------------------------
+    
     fcch_mat = fcch_mat.*exp( -1i.*((0:(fft_len-1))')*phase_rotate );
     fd_fcch = abs(fft(fcch_mat, fft_len, 1)).^2;
     signal_power = sum(fd_fcch([1:3, (end-1):end],:), 1);
