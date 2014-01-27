@@ -70,7 +70,7 @@ if last_idx >= 5
     num_sym_between_FCCH_ov = 10*num_sym_per_frame*oversampling_ratio;
     num_sym_between_FCCH1_ov = 11*num_sym_per_frame*oversampling_ratio; % in case the last idle frame of the multiframe
     
-    max_ppm = 2300;
+    max_ppm = 4000;
     max_th = floor( num_sym_between_FCCH_ov*max_ppm*1e-6 );
     max_th1 = floor( num_sym_between_FCCH1_ov*max_ppm*1e-6 );
     
@@ -92,10 +92,17 @@ if last_idx >= 5
         return;
     end
     
-    ex_percent = zeros(1, last_idx-1);
-    ex_percent(a_logical) = a(a_logical)./num_sym_between_FCCH_ov;
-    ex_percent(b_logical) = b(b_logical)./num_sym_between_FCCH1_ov;
-    mean_ex_percent = mean(ex_percent);
+    % % ------------may have problem!--------------------
+%     ex_percent = zeros(1, last_idx-1);
+%     ex_percent(a_logical) = a(a_logical)./num_sym_between_FCCH_ov;
+%     ex_percent(b_logical) = b(b_logical)./num_sym_between_FCCH1_ov;
+%     mean_ex_percent = mean(ex_percent);
+    % % ------end of may have problem!--------------------
+    
+    expected_distance = sum(a_logical.*num_sym_between_FCCH_ov) + sum(b_logical.*num_sym_between_FCCH1_ov);
+    actual_distance = FCCH_pos(end) - FCCH_pos(1);
+    mean_ex_percent = (actual_distance-expected_distance)/expected_distance;
+    
     sampling_ppm = mean_ex_percent*1e6;
     
     if mean_ex_percent >= 0
@@ -103,16 +110,16 @@ if last_idx >= 5
     else
         max_len = length(r);
     end
-    interp_seq = (0:(max_len-1)).*(1+mean_ex_percent);
+    interp_seq = (0:(max_len-1))'.*(1+mean_ex_percent);
     
-    r = interp1((0 : (length(r)-1)), r, interp_seq, 'linear');
+    r = interp1((0 : (length(r)-1))', r, interp_seq, 'linear');
     
     step_size = zeros(1, last_idx-1);
     step_size(a_logical) = num_sym_between_FCCH_ov;
     step_size(b_logical) = num_sym_between_FCCH1_ov;
     FCCH_pos = cumsum([1 step_size]);
     
-    first_FCCH_pos = round(first_FCCH_pos/(1+mean_ex_percent))+1;
+    first_FCCH_pos = round((first_FCCH_pos-1)/(1+mean_ex_percent))+1;
     FCCH_pos = FCCH_pos + first_FCCH_pos - 1;
     
     if (FCCH_pos(end) + fft_len-1) > length(r)
@@ -143,7 +150,7 @@ if num_fcch >= 5
     
     comp_freq = target_freq - fo;
     comp_phase_rotate = comp_freq*2*pi/sampling_rate;
-    r = r.*exp(1i.*(0:(length(r)-1)).*comp_phase_rotate);
+    r = r.*exp(1i.*(0:(length(r)-1))'.*comp_phase_rotate);
     
 %     % -----------------test on line-------------------------
 %     fcch_mat = zeros(fft_len, num_fcch);

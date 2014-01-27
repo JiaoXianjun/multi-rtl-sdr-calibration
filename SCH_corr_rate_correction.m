@@ -1,7 +1,8 @@
-function [FCCH_burst, SCH_burst, BCCH_burst, first_round_pos, sampling_ppm] = SCH_corr_rate_correction(s, FCCH_pos, sch_training_sequence, oversampling_ratio)
-s = s(:);
+function [pos_info, first_round_pos, sampling_ppm, r] = SCH_corr_rate_correction(s, FCCH_pos, sch_training_sequence, oversampling_ratio)
+% s = s(:);
 sampling_ppm = -1;
 first_round_pos = -1;
+r = -1;
 
 num_sym_per_slot = 625/4;
 num_sym_per_slot_ov = num_sym_per_slot*oversampling_ratio;
@@ -19,13 +20,11 @@ fix_offset_from_fcch_pos_ov = fix_offset_from_fcch_pos*oversampling_ratio;
 num_fcch_hit = length(FCCH_pos);
 SCH_pos = inf.*ones(1, num_fcch_hit);
 
-FCCH_burst = zeros(num_sym_per_slot_ov, num_fcch_hit);
-SCH_burst = zeros(num_sym_per_slot_ov, num_fcch_hit);
-BCCH_burst = zeros(4*num_sym_per_slot_ov, ceil(num_fcch_hit/5));
+pos_info = -1.*ones(3*num_fcch_hit, 2);
 
 len_s_ov = length(s);
 
-max_offset = 6*oversampling_ratio;
+max_offset = 8*oversampling_ratio;
 for i=1:num_fcch_hit
     training_sp = FCCH_pos(i) + fix_offset_from_fcch_pos_ov;
     
@@ -50,7 +49,7 @@ for i=1:num_fcch_hit
     
     if max_idx==1 || max_idx==len
         disp('SCH  Warning! no peak around base position is found!');
-        SCH_pos = -1;
+        pos_info = -1;
         return;
     end
 %     a = diff(corr_val(1:max_idx));
@@ -83,7 +82,7 @@ if num_sch >= 5
     num_sym_between_SCH_ov = 10*num_sym_per_frame_ov;
     num_sym_between_SCH1_ov = 11*num_sym_per_frame_ov; % in case the last idle frame of the multiframe
     
-    max_ppm = 50;
+    max_ppm = 200;
     max_th = floor( num_sym_between_SCH_ov*max_ppm*1e-6 );
     max_th1 = floor( num_sym_between_SCH1_ov*max_ppm*1e-6 );
     
@@ -114,8 +113,8 @@ if num_sch >= 5
         elseif mean_ex_percent < 0
             max_len = length(r);
         end
-        interp_seq = (0:(max_len-1)).*(1+mean_ex_percent);
-        r = interp1((0 : (length(r)-1)), r, interp_seq, 'linear');
+        interp_seq = (0:(max_len-1))'.*(1+mean_ex_percent);
+        r = interp1((0 : (length(r)-1))', r, interp_seq, 'linear');
     end
     
     step_size = zeros(1, num_sch-1);
@@ -123,7 +122,7 @@ if num_sch >= 5
     step_size(b_logical) = num_sym_between_SCH1_ov;
     SCH_pos = cumsum([1 step_size]);
 %     disp(num2str(step_size));
-    first_SCH_pos = round(first_SCH_pos/(1+mean_ex_percent))+1;
+    first_SCH_pos = round((first_SCH_pos-1)/(1+mean_ex_percent))+1;
     SCH_pos = SCH_pos + first_SCH_pos - 1;
     
     BCCH_flag = zeros(1, num_sch+1);
@@ -132,48 +131,44 @@ if num_sch >= 5
     BCCH_flag(b_idx(b_idx>=5)-4) = 1;
 %     disp(num2str(BCCH_flag));
     
-    sch_idx = 1;
-    bcch_idx = 1;
+    burst_idx = 1;
     for i=1:num_sch
         sp = SCH_pos(i)-fix_offset_from_fcch_pos_ov;
-        ep = sp + num_sym_per_slot_ov-1;
-        FCCH_burst(:,i) = r(sp:ep);
+        pos_info(burst_idx, 1) = sp;
+        pos_info(burst_idx, 2) = 0; % type FCCH
+        burst_idx = burst_idx + 1;
         
         sp = SCH_pos(i)-len_pre_training_sequence_ov;
         ep = sp + num_sym_per_slot_ov-1;
         if ep<=length(r)
-            SCH_burst(:, sch_idx) = r(sp:ep);
-            sch_idx = sch_idx + 1;
+            pos_info(burst_idx, 1) = sp;
+            pos_info(burst_idx, 2) = 1; % type SCH
+            burst_idx = burst_idx + 1;
         else
             break;
         end
         
         sch_sp = sp;
         if BCCH_flag(i)
-            runout_flag = 0;
+            runout_flag = false;
             for idx=1:4
-                sp = sch_sp + i*num_sym_per_frame_ov;
+                sp = sch_sp + idx*num_sym_per_frame_ov;
                 ep = sp + num_sym_per_slot_ov-1;
                 if ep<=length(r)
-                    BCCH_burst(((idx-1)*num_sym_per_slot_ov + 1): (idx*num_sym_per_slot_ov), bcch_idx ) = r(sp:ep);
+                    pos_info(burst_idx, 1) = sp;
+                    pos_info(burst_idx, 2) = 2; % type BCCH
+                    burst_idx = burst_idx + 1;
                 else
-                    runout_flag = idx;
+                    runout_flag = true;
                     break;
                 end
             end
             if runout_flag
-                if runout_flag>1
-                    bcch_idx = bcch_idx + 1;
-                end
                 break;
             end
-            bcch_idx = bcch_idx + 1;
         end
     end
-    
-    FCCH_burst = FCCH_burst(:, 1:i);
-    SCH_burst = SCH_burst(:, 1:(sch_idx-1));
-    BCCH_burst = BCCH_burst(:, 1:(bcch_idx-1));
+    pos_info = pos_info(1:(burst_idx-1),:);
 end
 
 % num_sch = length(SCH_pos);
