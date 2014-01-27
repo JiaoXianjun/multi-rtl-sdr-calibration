@@ -1,7 +1,14 @@
 function FCCH_demod(s, pos_info, oversampling_ratio, carrier_freq)
+disp(' ');
+
+if pos_info==-1
+    disp('FCCH demod: Warning! No valid position information!');
+    return;
+end
+
 len_TB = 3;
 len_CW = 142;
-len_FCCH_CW = len_TB + len_CW; % GSM spec. 1x rate
+len_FCCH_CW = 2*len_TB + len_CW; % GSM spec. 1x rate
 fft_len = len_FCCH_CW*oversampling_ratio;
 
 fcch_idx = (pos_info(:,2)==0);
@@ -29,12 +36,13 @@ phase_rotate = exp( 1i.*angle( fcch_mat(2:end,:) ) )./exp( 1i.*angle( fcch_mat(1
 phase_rotate = angle(mean(phase_rotate,1));
 
 freq = sampling_rate.*(int_phase_rotate + phase_rotate)./(2*pi);
+disp(['FCCH demod: FCCH freq ' num2str(freq)]);
 mean_freq = mean(freq);
-disp(['FCCH demod mean freq ' num2str(mean_freq)]);
+disp(['FCCH demod: mean FCCH freq ' num2str(mean_freq)]);
 
 target_freq = symbol_rate/4;
 carrier_ppm = 1e6*(mean_freq - target_freq)/carrier_freq;
-disp(['FCCH demod target freq and carrier ppm ' num2str(target_freq) ' ' num2str(carrier_ppm)]);
+disp(['FCCH demod: carrier error ppm ' num2str(carrier_ppm)]);
 
 snr = zeros(1, num_fcch);
 
@@ -50,4 +58,5 @@ for i=1:num_fcch
     snr(i) = 10.*log10(signal_power./noise_power);
 end
 
-disp(['FCCH demod SNR ' num2str(snr)]);
+disp(['FCCH demod: SNR ' num2str(snr)]);
+disp(['FCCH demod: max idx ' num2str(max_idx - ((fft_len/2) + 1 ))]);

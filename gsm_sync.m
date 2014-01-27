@@ -9,9 +9,9 @@
 
 num_dongle = 1;
 
-% freq = 940.8e6; % home. Find some GSM downlink signal by multi_rtl_sdr_gsm_FCCH_scanner.m!
+freq = 940.8e6; % home. Find some GSM downlink signal by multi_rtl_sdr_gsm_FCCH_scanner.m!
 % freq = 939e6; % home. Find some GSM downlink signal by multi_rtl_sdr_gsm_FCCH_scanner.m!
-freq = 957.4e6; % office. Find some GSM downlink signal by multi_rtl_sdr_gsm_FCCH_scanner.m!
+% freq = 957.4e6; % office. Find some GSM downlink signal by multi_rtl_sdr_gsm_FCCH_scanner.m!
 
 symbol_rate = (1625/6)*1e3;
 oversampling_ratio = 8;
@@ -100,22 +100,11 @@ for idx=1:1
 %     phase_seq = cell(1,2);
     for i=1:num_dongle
         disp(['dongle ' num2str(i) ' -------------------------------------------------------------------------']);
-        [FCCH_pos, FCCH_snr]= FCCH_coarse_position(r(1:decimation_ratio_from_oversampling:end,i), decimation_ratio_for_FCCH_rough_position);
-        disp(['FCCH coarse  SNR ' num2str(FCCH_snr)]);
-        disp(['FCCH coarse diff ' num2str(diff(FCCH_pos))]);
-
-        if length(FCCH_pos) >= 5
-            [FCCH_pos, first_round_pos, FCCH_snr, sampling_ppm, carrier_ppm, r_correct] = FCCH_fine_correction(r(:,i), FCCH_pos, oversampling_ratio, freq);
-            disp(['FCCH   fine   diff ' num2str(diff(first_round_pos))]);
-            disp(['FCCH   fine    SNR ' num2str(FCCH_snr)]);
-            disp(['FCCH sampling error ppm ' num2str(sampling_ppm)]);
-            disp(['FCCH carrier error ppm ' num2str(carrier_ppm)]);
-            if length(FCCH_pos) >= 5
-                [pos_info, first_round_pos, sampling_ppm, r_correct] = SCH_corr_rate_correction(r_correct, FCCH_pos, sch_training_sequence, oversampling_ratio);
-                disp(['SCH    fine   diff ' num2str(diff(first_round_pos))]);
-                disp(['SCH  sampling error ppm ' num2str(sampling_ppm)]);
-                r_correct = carrier_correct_post_SCH(r_correct, pos_info, oversampling_ratio, freq);
-                FCCH_demod(r_correct, pos_info, oversampling_ratio, freq);
+        FCCH_pos = FCCH_coarse_position(r(1:decimation_ratio_from_oversampling:end,i), decimation_ratio_for_FCCH_rough_position);
+        [FCCH_pos, r_correct] = FCCH_fine_correction(r(:,i), FCCH_pos, oversampling_ratio, freq);
+        [pos_info, r_correct] = SCH_corr_rate_correction(r_correct, FCCH_pos, sch_training_sequence, oversampling_ratio);
+        r_correct = carrier_correct_post_SCH(r_correct, pos_info, oversampling_ratio, freq);
+        FCCH_demod(r_correct, pos_info, oversampling_ratio, freq);
 %                 disp(['FCCH demod freq ' num2str(fcch_freq)]);
 %                 disp(['FCCH demod  snr ' num2str(fcch_snr)]);
 %                 [demod_info_sch, chn_fd_sch] = SCH_demod(SCH_burst, sch_training_sequence, oversampling_ratio);
@@ -129,8 +118,6 @@ for idx=1:1
 %                 subplot(2,1,1); plot(angle(tmp), 'b'); hold on;
 %                 subplot(2,1,2); plot(abs(tmp), 'b'); hold on;
 %                 drawnow;
-            end
-        end
     end
 %     figure; plot(phase_seq{1} - phase_seq{2});
 end

@@ -1,12 +1,15 @@
 function r = carrier_correct_post_SCH(s, pos_info, oversampling_ratio, carrier_freq)
+disp(' ');
+
 r = -1;
 if pos_info==-1
+    disp('post SCH: Warning! No valid position information!');
     return;
 end
 
 bcch_idx = (pos_info(:,2)==2);
 if sum(bcch_idx) < 4
-    disp('The number of BCCH bursts is less than 4!');
+    disp('post SCH: Warning! The number of BCCH bursts is less than 4!');
     return;
 end
 
@@ -55,15 +58,20 @@ end
 fd_fcch = abs(fft(fcch_mat, fft_len, 1)).^2;
 fd_fcch = [fd_fcch( ((fft_len/2)+1):end, : ); fd_fcch( 1:(fft_len/2), : )];
 [~, max_idx] = max(fd_fcch, [], 1);
+
 int_phase_rotate = 2.*pi.*(max_idx - ((fft_len/2) + 1 ) )./fft_len;
 fcch_mat = fcch_mat.*exp( -1i.*((0:(fft_len-1))')*int_phase_rotate );
+
 phase_rotate = exp( 1i.*angle( fcch_mat(2:end,:) ) )./exp( 1i.*angle( fcch_mat(1:(end-1),:) ) );
 phase_rotate = angle(mean(phase_rotate,1));
 fo = sampling_rate.*(int_phase_rotate + phase_rotate)./(2*pi);
-disp(['post SCH FCCH freq ' num2str(fo)]);
+disp(['post SCH: FCCH freq ' num2str(fo)]);
+
 fo = mean(fo);
+disp(['post SCH: mean FCCH freq ' num2str(fo)]);
+
 carrier_ppm = 1e6*(fo - target_freq)/carrier_freq;
-disp(['post SCH carrier ppm and mean fo ' num2str([carrier_ppm fo])]);
+disp(['post SCH: carrier error ppm ' num2str(carrier_ppm)]);
 
 comp_freq = target_freq - fo;
 comp_phase_rotate = comp_freq*2*pi/sampling_rate;
@@ -114,3 +122,27 @@ r = s.*exp(1i.*(0:(length(s)-1))'.*comp_phase_rotate);
 % % corr_val = abs((sch_training_sequence')*corr_mat).^2;
 % % figure;
 % % plot(corr_val');
+
+% disp('post SCH: -------------------------test freq----------------------------')
+% fcch_mat = zeros(fft_len, num_fcch);
+% for i=1:num_fcch
+%     sp = fcch_pos(i);
+%     fcch_mat(:,i) = r(sp:(sp+fft_len-1));
+% end
+% fd_fcch = abs(fft(fcch_mat, fft_len, 1)).^2;
+% fd_fcch = [fd_fcch( ((fft_len/2)+1):end, : ); fd_fcch( 1:(fft_len/2), : )];
+% [~, max_idx] = max(fd_fcch, [], 1);
+% 
+% int_phase_rotate = 2.*pi.*(max_idx - ((fft_len/2) + 1 ) )./fft_len;
+% fcch_mat = fcch_mat.*exp( -1i.*((0:(fft_len-1))')*int_phase_rotate );
+% 
+% phase_rotate = exp( 1i.*angle( fcch_mat(2:end,:) ) )./exp( 1i.*angle( fcch_mat(1:(end-1),:) ) );
+% phase_rotate = angle(mean(phase_rotate,1));
+% fo = sampling_rate.*(int_phase_rotate + phase_rotate)./(2*pi);
+% disp(['post SCH: FCCH freq ' num2str(fo)]);
+% 
+% fo = mean(fo);
+% disp(['post SCH: mean FCCH freq ' num2str(fo)]);
+% 
+% carrier_ppm = 1e6*(fo - target_freq)/carrier_freq;
+% disp(['post SCH: carrier error ppm ' num2str(carrier_ppm)]);

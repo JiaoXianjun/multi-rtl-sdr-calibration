@@ -1,8 +1,12 @@
-function [pos_info, first_round_pos, sampling_ppm, r] = SCH_corr_rate_correction(s, FCCH_pos, sch_training_sequence, oversampling_ratio)
-% s = s(:);
-sampling_ppm = -1;
-first_round_pos = -1;
+function [pos_info, r] = SCH_corr_rate_correction(s, FCCH_pos, sch_training_sequence, oversampling_ratio)
+disp(' ');
+
 r = -1;
+pos_info = -1;
+if length(FCCH_pos)<5
+    disp('SCH: Warning! Length of hits is smaller than 5!');
+    return;
+end
 
 num_sym_per_slot = 625/4;
 num_sym_per_slot_ov = num_sym_per_slot*oversampling_ratio;
@@ -48,7 +52,7 @@ for i=1:num_fcch_hit
 %     figure; plot(corr_val, 'b.-');
     
     if max_idx==1 || max_idx==len
-        disp('SCH  Warning! no peak around base position is found!');
+        disp('SCH:  Warning! No peak around base position is found!');
         pos_info = -1;
         return;
     end
@@ -68,7 +72,7 @@ for i=1:num_fcch_hit
 %     end
     
 end
-first_round_pos = SCH_pos;
+disp(['SCH: first round diff ' num2str(diff(SCH_pos))]);
 
 num_sch = length(SCH_pos);
 % estimate and correct sampling time error
@@ -82,7 +86,7 @@ if num_sch >= 5
     num_sym_between_SCH_ov = 10*num_sym_per_frame_ov;
     num_sym_between_SCH1_ov = 11*num_sym_per_frame_ov; % in case the last idle frame of the multiframe
     
-    max_ppm = 200;
+    max_ppm = 400;
     max_th = floor( num_sym_between_SCH_ov*max_ppm*1e-6 );
     max_th1 = floor( num_sym_between_SCH1_ov*max_ppm*1e-6 );
     
@@ -95,7 +99,7 @@ if num_sch >= 5
     num_distance_b = sum(b_logical);
     
     if (num_distance_a + num_distance_b) ~= num_sch-1
-        disp('SCH Warning! Kinds of pos diff more than 2!');
+        disp('SCH: Warning! Kinds of pos diff more than 2!');
         disp(['Expected len ' num2str(num_sch-1) '. Actual ' num2str([num_distance_a num_distance_b])]);
         disp(['diff intra multiframe max th ' num2str(max_th) ' actual ' num2str(a)]);
         disp(['diff inter multiframe max th ' num2str(max_th1) ' actual ' num2str(b)]);
@@ -106,6 +110,7 @@ if num_sch >= 5
     actual_distance = SCH_pos(end) - SCH_pos(1);
     mean_ex_percent = (actual_distance-expected_distance)/expected_distance;
     sampling_ppm = mean_ex_percent*1e6;
+    disp(['SCH: sampling error ppm ' num2str(sampling_ppm)]);
     
     if mean_ex_percent ~= 0
         if mean_ex_percent > 0

@@ -1,4 +1,7 @@
-function [position, snr] = FCCH_coarse_position(s, decimation_ratio)
+function position = FCCH_coarse_position(s, decimation_ratio)
+disp(' ');
+position = -1;
+
 num_sym_per_slot = 625/4;
 num_slot_per_frame = 8;
 num_sym_per_frame = num_sym_per_slot*num_slot_per_frame;
@@ -17,9 +20,7 @@ mv_len = 10*fft_len;
 [hit_flag, hit_idx, hit_avg_snr, hit_snr] = move_fft_snr_runtime_avg(s(1:ceil(23*num_sym_per_frame/decimation_ratio)), mv_len, fft_len, th);
 
 if ~hit_flag
-%     disp('No FCCH found!');
-    position = -1;
-    snr = inf;
+    disp('FCCH coarse: No FCCH found!');
     return;
 end
 
@@ -83,4 +84,6 @@ position = position(1:set_idx);
 snr = snr(1:set_idx);
 
 position = (position-1)*decimation_ratio + 1;
-disp(['Find successive(rough) ' num2str(length(position)) ' FCCH. pos ' num2str(position)]);
+disp(['FCCH coarse: hit successive ' num2str(length(position)) ' FCCH. pos ' num2str(position)]);
+disp(['FCCH coarse: pos diff ' num2str(diff(position))]);
+disp(['FCCH coarse: SNR ' num2str(snr)]);

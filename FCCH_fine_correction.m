@@ -1,8 +1,12 @@
-function [FCCH_pos, first_round_pos, FCCH_snr, sampling_ppm, carrier_ppm, r] = FCCH_fine_correction(s, base_position, oversampling_ratio, carrier_freq)
-FCCH_snr = 0;
-sampling_ppm = 0;
-carrier_ppm = 0;
-r = 0;
+function [FCCH_pos, r] = FCCH_fine_correction(s, base_position, oversampling_ratio, carrier_freq)
+disp(' ');
+
+r = -1;
+FCCH_pos = -1;
+if length(base_position)<5
+    disp('FCCH fine: Warning! Length of hits is smaller than 5!');
+    return;
+end
 
 symbol_rate = (1625/6)*1e3;
 sampling_rate = symbol_rate*oversampling_ratio;
@@ -42,7 +46,7 @@ for i=1:num_fcch_hit
     [~, max_idx] = max(fft_peak_val);
     
     if max_idx==1 || max_idx==len
-        disp('FCCH fine Warning! No peak around base position is found!');
+        disp('FCCH fine: Warning! No peak around base position is found!');
         FCCH_pos(i) = sp + max_idx - 1;
         last_idx = i;
 %         FCCH_pos = -1;
@@ -53,7 +57,7 @@ for i=1:num_fcch_hit
     end
 end
 FCCH_pos = FCCH_pos(1:last_idx);
-first_round_pos = FCCH_pos;
+disp(['FCCH fine: first round diff ' num2str(diff(FCCH_pos))]);
 
 % estimate and correct sampling time error
 if last_idx >= 5
@@ -83,12 +87,11 @@ if last_idx >= 5
     num_distance_b = sum(b_logical);
     
     if (num_distance_a + num_distance_b) ~= last_idx-1
-        disp('FCCH fine Warning! Kinds of pos diff more than 2!');
+        disp('FCCH fine: Warning! Kinds of pos diff more than 2!');
         disp(['Expected len ' num2str(last_idx-1) '. Actual ' num2str([num_distance_a num_distance_b])]);
         disp(['diff intra multiframe max th ' num2str(max_th) ' actual ' num2str(a)]);
         disp(['diff inter multiframe max th ' num2str(max_th1) ' actual ' num2str(b)]);
         FCCH_pos = -1;
-        first_round_pos = -1;
         return;
     end
     
@@ -104,6 +107,7 @@ if last_idx >= 5
     mean_ex_percent = (actual_distance-expected_distance)/expected_distance;
     
     sampling_ppm = mean_ex_percent*1e6;
+    disp(['FCCH fine: sampling error ppm ' num2str(sampling_ppm)]);
     
     if mean_ex_percent >= 0
         max_len = floor( length(r)/(1+mean_ex_percent) );
@@ -143,10 +147,12 @@ if num_fcch >= 5
     phase_rotate = exp( 1i.*angle( fcch_mat(2:end,:) ) )./exp( 1i.*angle( fcch_mat(1:(end-1),:) ) );
     phase_rotate = angle(mean(phase_rotate,1));
     fo = sampling_rate.*(int_phase_rotate + phase_rotate)./(2*pi);
-    disp(['FCCH fine freq ' num2str(fo)]);
+    disp(['FCCH fine: FCCH freq ' num2str(fo)]);
     target_freq = symbol_rate/4;
     fo = mean(fo);
+    disp(['FCCH fine: mean FCCH freq ' num2str(fo)]);
     carrier_ppm = 1e6*(fo - target_freq)/carrier_freq;
+    disp(['FCCH fine: carrier error ppm ' num2str(carrier_ppm)]);
     
     comp_freq = target_freq - fo;
     comp_phase_rotate = comp_freq*2*pi/sampling_rate;
@@ -173,13 +179,13 @@ if num_fcch >= 5
     fcch_mat = fcch_mat.*exp( -1i.*((0:(fft_len-1))')*phase_rotate );
     fd_fcch = abs(fft(fcch_mat, fft_len, 1)).^2;
     signal_power = sum(fd_fcch([1:3, (end-1):end],:), 1);
-    noise_power = sum(fd_fcch([4:half_noise_len, (end-half_noise_len+2):(end-2)],:), 1);
+    noise_power = sum(fd_fcch([4:half_noise_len, (end-half_noise_len+1):(end-2)],:), 1);
     FCCH_snr = 10.*log10(signal_power./noise_power);
+    disp(['FCCH fine: SNR ' num2str(FCCH_snr)]);
     
     if sum(FCCH_snr<5) > 0
-        disp('FCCH fine: some FCCH SNR seems pretty low!');
+        disp('FCCH fine: Warning! Some FCCH SNR seems pretty low!');
         FCCH_pos = -1;
-        first_round_pos = -1;
         return;
     end
 end
