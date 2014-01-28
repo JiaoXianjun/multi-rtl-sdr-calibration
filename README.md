@@ -17,6 +17,8 @@ I know it is far from final state currently, and many things are not clear yet (
 
 But please join me if you also think this is a good idea. Please see TODO firstly.
 
+(Now actually synchronization of single dongle bas been completed. I am trying to demodulate information in SCH and BCCH. See gsm_sync_demod.m )
+
 Usage
 =======================
 Assume that you have rtl-sdr worked correctly. (See http://sdr.osmocom.org/trac/wiki/rtl-sdr)
@@ -31,7 +33,7 @@ Assume that you have two dongles there, open two shell and run
 
 in two shells respectively.
 
-Then run matlab script: multi_rtl_sdr_split_scanner.m/multi_rtl_sdr_diversity_scanner.m/multi_rtl_sdr_gsm_FCCH_scanner.m to see how to use two dongles to scan a band simultaneously.
+Then run matlab script: gsm_sync_demod.m/multi_rtl_sdr_split_scanner.m/multi_rtl_sdr_diversity_scanner.m/multi_rtl_sdr_gsm_FCCH_scanner.m to see how to use two dongles to scan a band simultaneously.
 
 (See README_for_scanner.txt and README_for_gsm_scanner.txt for detail of "side products" -- spectrum scanner and FCCH scanner.)
 
@@ -66,7 +68,7 @@ In matlab, I receive and process TCP streams like this:
 	    ....
 	end
 
-See detail in script multi_rtl_sdr_split_scanner.m/multi_rtl_sdr_diversity_scanner.m/multi_rtl_sdr_gsm_FCCH_scanner.m
+See detail in script gsm_sync_demod.m/multi_rtl_sdr_split_scanner.m/multi_rtl_sdr_diversity_scanner.m/multi_rtl_sdr_gsm_FCCH_scanner.m
 
 I also give some little tool scripts to set dongle's frequency, gain, etc.
 

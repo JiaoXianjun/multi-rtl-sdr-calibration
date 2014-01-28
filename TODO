@@ -6,6 +6,7 @@ TODO:
  2: (DONE. rtl_tcp supports it natively.)Would Async mode rtl-sdr read be better than Sync mode?
  3: (DONE. No need now because using rtl_tcp now.) Make bi-directional UDP link to let C program accept Matlab's control?
  4: In-fly multi-dongles calibration algorithm. (Which signal is good candidate for this? GSM? 1090MHz ADS-B?)
+ (Now actually synchronization of single dongle bas been completed. I am trying to demodulate information in SCH and BCCH. See gsm_sync_demod.m )
 
  4.1:
  continuous fft to locate time position of fcch, which has been done.
