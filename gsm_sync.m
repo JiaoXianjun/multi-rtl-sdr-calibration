@@ -9,9 +9,9 @@
 
 num_dongle = 1;
 
-freq = 940.8e6; % home. Find some GSM downlink signal by multi_rtl_sdr_gsm_FCCH_scanner.m!
+% freq = 940.8e6; % home. Find some GSM downlink signal by multi_rtl_sdr_gsm_FCCH_scanner.m!
 % freq = 939e6; % home. Find some GSM downlink signal by multi_rtl_sdr_gsm_FCCH_scanner.m!
-% freq = 957.4e6; % office. Find some GSM downlink signal by multi_rtl_sdr_gsm_FCCH_scanner.m!
+freq = 957.4e6; % office. Find some GSM downlink signal by multi_rtl_sdr_gsm_FCCH_scanner.m!
 
 symbol_rate = (1625/6)*1e3;
 oversampling_ratio = 8;
@@ -104,10 +104,8 @@ for idx=1:1
         [FCCH_pos, r_correct] = FCCH_fine_correction(r(:,i), FCCH_pos, oversampling_ratio, freq);
         [pos_info, r_correct] = SCH_corr_rate_correction(r_correct, FCCH_pos, sch_training_sequence, oversampling_ratio);
         r_correct = carrier_correct_post_SCH(r_correct, pos_info, oversampling_ratio, freq);
-        FCCH_demod(r_correct, pos_info, oversampling_ratio, freq);
-%                 disp(['FCCH demod freq ' num2str(fcch_freq)]);
-%                 disp(['FCCH demod  snr ' num2str(fcch_snr)]);
-%                 [demod_info_sch, chn_fd_sch] = SCH_demod(SCH_burst, sch_training_sequence, oversampling_ratio);
+%         FCCH_demod(r_correct, pos_info, oversampling_ratio, freq);
+        SCH_demod(r_correct, pos_info, sch_training_sequence, oversampling_ratio);
 %                 [demod_info_bcch, chn_fd_bcch] = BCCH_demod(BCCH_burst, normal_training_sequence, oversampling_ratio);
 %                 tmp = r_correct(1: (2*oversampling_ratio*num_slot_per_frame * num_sym_per_slot));
 %                 subplot(num_dongle,1,i); plot(corr_val);
