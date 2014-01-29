@@ -39,6 +39,25 @@ else
     s = load(filename);
     s = s.s;
 end
+
+% % ---------test another method and compare it with formal method----------------
+% mod_idx = 0.5;
+% BT = 0.3;
+% pulse_length = 4;
+% sample_per_symbol = oversampling_ratio;
+% 
+% hMod = comm.CPMModulator(2, 'BitInput', true, 'SymbolMapping', 'Gray', 'ModulationIndex', mod_idx, 'FrequencyPulse', 'Gaussian', 'BandwidthTimeProduct', BT, 'PulseLength', pulse_length, 'SamplesPerSymbol', sample_per_symbol);
+% data = [1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, ...
+%     0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, ...
+%     1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1].';
+% data = ~abs(diff([0; data]));
+% x = step(hMod, data); 
+% subplot(2,1,1); plot(real(s)); hold on; plot(real(x),'r.');
+% subplot(2,1,2); plot(imag(s)); hold on; plot(imag(x),'r.');
+
+% % --------end of test another method and compare it with formal method----------
+
+% % --------------------useless-------------------------------------------------------
 % hMod = comm.CPMModulator(2, 'BitInput', true, 'SymbolMapping', 'Gray', 'ModulationIndex', mod_idx, 'FrequencyPulse', 'Gaussian', 'BandwidthTimeProduct', BT, 'PulseLength', pulse_length, 'SamplesPerSymbol', sample_per_symbol);
 % 
 % data = [1 1 1 1 1 1 1 1 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, ...

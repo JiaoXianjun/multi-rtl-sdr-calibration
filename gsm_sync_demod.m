@@ -61,6 +61,11 @@ for i=1:num_dongle
     fopen(tcp_obj{i});
 end
 
+% set gain
+for i=1:num_dongle
+    set_gain_tcp(tcp_obj{i}, 0);
+end
+
 % set sampling rate
 for i=1:num_dongle
     set_rate_tcp(tcp_obj{i}, sampling_rate);
