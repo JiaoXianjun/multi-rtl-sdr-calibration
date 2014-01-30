@@ -23,8 +23,10 @@ sampling_rate = symbol_rate*oversampling_ratio;
 num_frame = 2*51; % two multiframe (each has 51 frames)
 num_sym_per_slot = 625/4;
 num_slot_per_frame = 8;
+num_sym_per_frame = num_sym_per_slot*num_slot_per_frame;
+num_sym_per_frame_ov = num_sym_per_frame * oversampling_ratio;
 
-num_sample = oversampling_ratio * num_frame * num_slot_per_frame * num_sym_per_slot;
+num_sample = num_sym_per_frame_ov * num_frame;
 s = zeros(2*num_sample, num_dongle);
 real_count = zeros(1, num_dongle);
 
@@ -38,6 +40,8 @@ normal_training_sequence = gsm_normal_training_sequence_gen(oversampling_ratio);
 
 sampling_ppm = zeros(1,2);
 carrier_ppm = zeros(1,2);
+pos_info = cell(1, num_dongle);
+num_pos = zeros(1, num_dongle);
 
 format_string = {'b.-', 'r.-', 'k.-', 'g.-', 'c.-', 'm.-'};
 clf;
@@ -105,37 +109,58 @@ for idx=1:1
     % channel filter
     r = filter(coef, 1, r);
     
-%     phase_seq = cell(1,2);
     for i=1:num_dongle
         disp(' ');
         disp(['dongle ' num2str(i) ' -------------------------------------------------------------------------']);
+        
+        % % -----------do synchronization by FCCH and SCH------------------------------------------
         FCCH_pos = FCCH_coarse_position(r(1:decimation_ratio_from_oversampling:end,i), decimation_ratio_for_FCCH_rough_position);
         [FCCH_pos, r_correct, sampling_ppm(1), carrier_ppm(1)] = FCCH_fine_correction(r(:,i), FCCH_pos, oversampling_ratio, freq);
-        [pos_info, r_correct, sampling_ppm(2)] = SCH_corr_rate_correction(r_correct, FCCH_pos, sch_training_sequence, oversampling_ratio);
-        [r_correct, carrier_ppm(2)] = carrier_correct_post_SCH(r_correct, pos_info, oversampling_ratio, freq);
+        [pos_info{i}, r_correct, sampling_ppm(2)] = SCH_corr_rate_correction(r_correct, FCCH_pos, sch_training_sequence, oversampling_ratio);
+        [r_correct, carrier_ppm(2)] = carrier_correct_post_SCH(r_correct, pos_info{i}, oversampling_ratio, freq);
+        
+        % % -----------calculate and display total sampling PPM and carrier PPM of each dongle------
         sampling_ppm = total_ppm_calculation(sampling_ppm);
         carrier_ppm = total_ppm_calculation(carrier_ppm);
         disp(' ');
         disp(['Total sampling PPM ' num2str(sampling_ppm) ' Total carrier PPM ' num2str(carrier_ppm) ]);
+        
+        % % -----------display FCCH, SCH and BCCH position of each dongle----------------------------
+        subplot(num_dongle+1,1,i);
+        pos_tmp = pos_info{i}; num_pos(i) = length(pos_tmp(:,1));
+        a = NaN(1, max(round( pos_tmp(:,1)./num_sym_per_frame_ov )));
+        a(round(pos_tmp(pos_tmp(:,2)==0,1)./num_sym_per_frame_ov)) = 0;
+        a(round(pos_tmp(pos_tmp(:,2)==1,1)./num_sym_per_frame_ov)) = 1;
+        a(round(pos_tmp(pos_tmp(:,2)==2,1)./num_sym_per_frame_ov)) = 2;
+        b = [a;a]; pcolor(b); colorbar;
+        if i==1
+            xlabel('GSM frame index. (8 slot per frame; FCCH/SCH/BCCH only in 1st slot)');
+        end
+        if i==1
+            title('color 0 -- FCCH; color 1 -- SCH; color 2 -- BCCH');
+        end
+        
+        % % -----------demodulation is still under development---------------------------------------
 %         FCCH_demod(r_correct, pos_info, oversampling_ratio, freq);
-        SCH_demod(r_correct, pos_info, sch_training_sequence, oversampling_ratio);
-%                 [demod_info_bcch, chn_fd_bcch] = BCCH_demod(BCCH_burst, normal_training_sequence, oversampling_ratio);
-%                 tmp = r_correct(1: (2*oversampling_ratio*num_slot_per_frame * num_sym_per_slot));
-%                 subplot(num_dongle,1,i); plot(corr_val);
-%                 subplot(2,1,i); plot(phase_seq{i});
-%                 tmp = angle(tmp(2:end)./tmp(1:end-1));
-%                 tmp = angle(tmp);
-%                 fo = tmp.*sampling_rate./(2*pi);
-%                 subplot(2,1,1); plot(angle(tmp), 'b'); hold on;
-%                 subplot(2,1,2); plot(abs(tmp), 'b'); hold on;
-%                 drawnow;
+        SCH_demod(r_correct, pos_info{i}, sch_training_sequence, oversampling_ratio);
+%         BCCH_demod(BCCH_burst, normal_training_sequence, oversampling_ratio);
     end
-%     figure; plot(phase_seq{1} - phase_seq{2});
+    
+    % % ----------display sampling phase difference between two dongles------------------------------
+    subplot(num_dongle+1,1,num_dongle+1);
+    if num_dongle==2
+        [num_pos, min_idx] = min(num_pos);
+        pos_tmp1 = pos_info{1}; pos_tmp1 = pos_tmp1(1:num_pos,1);
+        pos_tmp2 = pos_info{2}; pos_tmp2 = pos_tmp2(1:num_pos,1);
+        pos_tmp = pos_info{min_idx};
+        plot(round(pos_tmp(:,1)./num_sym_per_frame_ov), pos_tmp2 - pos_tmp1, 'b.'); colorbar;
+        ylabel(['diff(1/' num2str(oversampling_ratio) ')']); xlabel('GSM frame index');
+        title(['sampling phase difference between two dongles (' num2str(oversampling_ratio) 'X oversampling)']);
+    else
+        text(0.05,0.5,'Sampling phase difference is only displayed for two dongles case!');
+    end
+    
 end
-% for i=1:num_dongle
-%     figure(i);
-%     plot(FCCH_pos(i), 'b*');
-% end
 % % % ---------------------------------------------------------------------------------
 % % % --------------------------- end of read and processing ------------------------------
 

@@ -17,7 +17,13 @@ I know it is far from final state currently, and many things are not clear yet (
 
 But please join me if you also think this is a good idea. Please see TODO firstly.
 
-(Now actually synchronization of single dongle bas been completed. I am trying to demodulate information in SCH and BCCH. See gsm_sync_demod.m )
+=======================
+News:
+1. Now gsm_sync_demod.m can correct sampling and carrier error for multiple dongles, and display sampling phase difference (at 8X oversampling) for two dongles after sampling and carrier correction.
+
+Don't forget to use multi_rtl_sdr_gsm_FCCH_scanner.m to find out strongest GSM broadcasting carrier in your location and set it to "freq" in gsm_sync_demod.m
+
+2. I am trying to demodulate information in SCH and BCCH to help aligning further. See gsm_sync_demod.m
 
 Usage
 =======================

@@ -2,7 +2,7 @@ function [r, carrier_ppm] = carrier_correct_post_SCH(s, pos_info, oversampling_r
 disp(' ');
 
 r = -1;
-carrier_ppm = -1;
+carrier_ppm = inf;
 if pos_info==-1
     disp('post SCH: Warning! No valid position information!');
     return;

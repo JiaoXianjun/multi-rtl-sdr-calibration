@@ -3,8 +3,8 @@ disp(' ');
 
 r = -1;
 FCCH_pos = -1;
-sampling_ppm = -1;
-carrier_ppm = -1;
+sampling_ppm = inf;
+carrier_ppm = inf;
 if length(base_position)<5
     disp('FCCH fine: Warning! Length of hits is smaller than 5!');
     return;

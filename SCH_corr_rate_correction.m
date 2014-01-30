@@ -2,8 +2,8 @@ function [pos_info, r, sampling_ppm] = SCH_corr_rate_correction(s, FCCH_pos, sch
 disp(' ');
 
 r = -1;
-pos_info = -1;
-sampling_ppm = -1;
+pos_info = [-1, -1];
+sampling_ppm = inf;
 if length(FCCH_pos)<5
     disp('SCH: Warning! Length of hits is smaller than 5!');
     return;
@@ -54,7 +54,7 @@ for i=1:num_fcch_hit
     
     if max_idx==1 || max_idx==len
         disp('SCH:  Warning! No peak around base position is found!');
-        pos_info = -1;
+        pos_info = [-1, -1];
         return;
     end
 %     a = diff(corr_val(1:max_idx));

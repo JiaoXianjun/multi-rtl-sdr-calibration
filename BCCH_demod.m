@@ -1,4 +1,4 @@
-function [demod_info, chn_fd] = BCCH_demod(burst, training_sequence, oversampling_ratio)
+function BCCH_demod(s, pos_info, training_sequence, oversampling_ratio)
 carrier_ppm = -1;
 normal_training_sequence_idx = -1;
 r = -1;
