@@ -1,8 +1,9 @@
-function [pos_info, r] = SCH_corr_rate_correction(s, FCCH_pos, sch_training_sequence, oversampling_ratio)
+function [pos_info, r, sampling_ppm] = SCH_corr_rate_correction(s, FCCH_pos, sch_training_sequence, oversampling_ratio)
 disp(' ');
 
 r = -1;
 pos_info = -1;
+sampling_ppm = -1;
 if length(FCCH_pos)<5
     disp('SCH: Warning! Length of hits is smaller than 5!');
     return;

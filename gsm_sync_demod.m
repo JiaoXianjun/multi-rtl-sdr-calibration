@@ -7,7 +7,7 @@
 % rtl_tcp -p 1236 -d 2
 % ...
 
-num_dongle = 1;
+num_dongle = 2;
 
 % freq = 940.8e6; % home. Find some GSM downlink signal by multi_rtl_sdr_gsm_FCCH_scanner.m!
 % freq = 939e6; % home. Find some GSM downlink signal by multi_rtl_sdr_gsm_FCCH_scanner.m!
@@ -35,6 +35,9 @@ coef = fir1(46, 200e3/sampling_rate);
 % generate SCH training sequence
 sch_training_sequence = gsm_SCH_training_sequence_gen(oversampling_ratio);
 normal_training_sequence = gsm_normal_training_sequence_gen(oversampling_ratio);
+
+sampling_ppm = zeros(1,2);
+carrier_ppm = zeros(1,2);
 
 format_string = {'b.-', 'r.-', 'k.-', 'g.-', 'c.-', 'm.-'};
 clf;
@@ -104,11 +107,16 @@ for idx=1:1
     
 %     phase_seq = cell(1,2);
     for i=1:num_dongle
+        disp(' ');
         disp(['dongle ' num2str(i) ' -------------------------------------------------------------------------']);
         FCCH_pos = FCCH_coarse_position(r(1:decimation_ratio_from_oversampling:end,i), decimation_ratio_for_FCCH_rough_position);
-        [FCCH_pos, r_correct] = FCCH_fine_correction(r(:,i), FCCH_pos, oversampling_ratio, freq);
-        [pos_info, r_correct] = SCH_corr_rate_correction(r_correct, FCCH_pos, sch_training_sequence, oversampling_ratio);
-        r_correct = carrier_correct_post_SCH(r_correct, pos_info, oversampling_ratio, freq);
+        [FCCH_pos, r_correct, sampling_ppm(1), carrier_ppm(1)] = FCCH_fine_correction(r(:,i), FCCH_pos, oversampling_ratio, freq);
+        [pos_info, r_correct, sampling_ppm(2)] = SCH_corr_rate_correction(r_correct, FCCH_pos, sch_training_sequence, oversampling_ratio);
+        [r_correct, carrier_ppm(2)] = carrier_correct_post_SCH(r_correct, pos_info, oversampling_ratio, freq);
+        sampling_ppm = total_ppm_calculation(sampling_ppm);
+        carrier_ppm = total_ppm_calculation(carrier_ppm);
+        disp(' ');
+        disp(['Total sampling PPM ' num2str(sampling_ppm) ' Total carrier PPM ' num2str(carrier_ppm) ]);
 %         FCCH_demod(r_correct, pos_info, oversampling_ratio, freq);
         SCH_demod(r_correct, pos_info, sch_training_sequence, oversampling_ratio);
 %                 [demod_info_bcch, chn_fd_bcch] = BCCH_demod(BCCH_burst, normal_training_sequence, oversampling_ratio);

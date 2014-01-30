@@ -57,7 +57,7 @@ fd_training_ov = fft(td_training_ov);
 hDemod = comm.GMSKDemodulator('BitOutput', true, 'BandwidthTimeProduct', 0.3, 'PulseLength', 4, 'SamplesPerSymbol', oversampling_ratio, 'TracebackDepth', TracebackDepth, 'InitialPhaseOffset', 0);
 
 for i=1:num_sch
-    disp(['SCH_demod: ' num2str(i)]);
+%     disp(['SCH_demod: ' num2str(i)]);
     
 %     sp = sch_pos(i) + (len_pre_training_sequence_ov) - 10*oversampling_ratio;
 %     ep = sch_pos(i) + (len_pre_training_sequence_ov) + 10*oversampling_ratio;
@@ -94,7 +94,7 @@ for i=1:num_sch
     bits_to_decoder = abs(diff([0 ~demod_bits]));
     % % % --------test if it is self consistent ------------------
     tmp = ~abs(diff([0 bits_to_decoder]));
-    disp(['test anti-diff decoder cosistency: ' num2str(sum(abs(tmp - demod_bits)))]);
+%     disp(['test anti-diff decoder cosistency: ' num2str(sum(abs(tmp - demod_bits)))]);
     % % % --------end of test if it is self consistent ------------------
     
     demod_bits = 2.*demod_bits - 1;
@@ -106,12 +106,12 @@ for i=1:num_sch
     corr_mat = corr_mat(len:end, end:-1:1);
 
     corr_val = data*corr_mat;
-    figure;
-    subplot(3,1,1); plot(corr_val);
-    x = x((ex_len*oversampling_ratio+1):(ex_len*oversampling_ratio+num_sym_per_slot_ov));
-    subplot(3,1,2); plot(abs(x));
-    freq = sampling_rate.*angle(x(2:end)./x(1:end-1))./(2.*pi);
-    subplot(3,1,3); plot(freq); hold on;
+%     figure;
+%     subplot(3,1,1); plot(corr_val);
+%     x = x((ex_len*oversampling_ratio+1):(ex_len*oversampling_ratio+num_sym_per_slot_ov));
+%     subplot(3,1,2); plot(abs(x));
+%     freq = sampling_rate.*angle(x(2:end)./x(1:end-1))./(2.*pi);
+%     subplot(3,1,3); plot(freq); hold on;
 % %     figure;
 % %     plot(corr_val);
 end
