@@ -1,3 +1,7 @@
+% Jiao Xianjun (putaoshu@msn.com; putaoshu@gmail.com)
+% Generate GSM SCH channel training sequences according to GSM spec
+% A script of project: https://github.com/JiaoXianjun/multi-rtl-sdr-calibration
+
 function s = gsm_SCH_training_sequence_gen(oversampling_ratio)
 filename = ['gsm_SCH_training_sequence_' num2str(oversampling_ratio) 'x.mat'];
 

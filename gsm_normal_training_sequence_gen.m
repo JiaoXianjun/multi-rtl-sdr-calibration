@@ -1,3 +1,7 @@
+% Jiao Xianjun (putaoshu@msn.com; putaoshu@gmail.com)
+% Generate 8 normal training sequences according to GSM spec
+% A script of project: https://github.com/JiaoXianjun/multi-rtl-sdr-calibration
+
 function s = gsm_normal_training_sequence_gen(oversampling_ratio)
 filename = ['gsm_normal_training_sequence_' num2str(oversampling_ratio) 'x.mat'];
 

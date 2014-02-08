@@ -1,3 +1,7 @@
+% Jiao Xianjun (putaoshu@msn.com; putaoshu@gmail.com)
+% GSM FCCH detector/verification
+% A script of project: https://github.com/JiaoXianjun/multi-rtl-sdr-calibration
+
 function FCCH_demod(s, pos_info, oversampling_ratio, carrier_freq)
 disp(' ');
 

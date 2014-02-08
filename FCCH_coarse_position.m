@@ -1,3 +1,7 @@
+% Jiao Xianjun (putaoshu@msn.com; putaoshu@gmail.com)
+% Find out coarse sample index of beginning of GSM FCCH
+% A script of project: https://github.com/JiaoXianjun/multi-rtl-sdr-calibration
+
 function position = FCCH_coarse_position(s, decimation_ratio)
 disp(' ');
 position = -1;

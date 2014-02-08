@@ -1,3 +1,7 @@
+% Jiao Xianjun (putaoshu@msn.com; putaoshu@gmail.com)
+% A test script to study GMSK demodulation
+% A script of project: https://github.com/JiaoXianjun/multi-rtl-sdr-calibration
+
 % function test_diff_GMSK_mod_demod
 clear all;
 close all;

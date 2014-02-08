@@ -1,3 +1,7 @@
+% Jiao Xianjun (putaoshu@msn.com; putaoshu@gmail.com)
+% Estimate sampling rate error and carrier frequency error and compansate them according to GSM SCH detection.
+% A script of project: https://github.com/JiaoXianjun/multi-rtl-sdr-calibration
+
 function [pos_info, r, sampling_ppm] = SCH_corr_rate_correction(s, FCCH_pos, sch_training_sequence, oversampling_ratio)
 disp(' ');
 

@@ -1,3 +1,7 @@
+% Jiao Xianjun (putaoshu@msn.com; putaoshu@gmail.com)
+% Calculated total PPM according to several cascaded PPM
+% A script of project: https://github.com/JiaoXianjun/multi-rtl-sdr-calibration
+
 function ppm_out = total_ppm_calculation(ppm_in)
 
 if ppm_in == inf

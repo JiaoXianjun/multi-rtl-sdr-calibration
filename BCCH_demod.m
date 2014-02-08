@@ -1,3 +1,7 @@
+% Jiao Xianjun (putaoshu@msn.com; putaoshu@gmail.com)
+% GSM BCCH demodulator
+% A script of project: https://github.com/JiaoXianjun/multi-rtl-sdr-calibration
+
 function BCCH_demod(s, pos_info, training_sequence, oversampling_ratio)
 carrier_ppm = -1;
 normal_training_sequence_idx = -1;

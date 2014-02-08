@@ -1,3 +1,7 @@
+% Jiao Xianjun (putaoshu@msn.com; putaoshu@gmail.com)
+% GSM FCCH fine synchronization
+% A script of project: https://github.com/JiaoXianjun/multi-rtl-sdr-calibration
+
 function [FCCH_pos, r, sampling_ppm, carrier_ppm] = FCCH_fine_correction(s, base_position, oversampling_ratio, carrier_freq)
 disp(' ');
 

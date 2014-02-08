@@ -1,3 +1,7 @@
+% Jiao Xianjun (putaoshu@msn.com; putaoshu@gmail.com)
+% Estimate carrier frequency error and compansate it.
+% A script of project: https://github.com/JiaoXianjun/multi-rtl-sdr-calibration
+
 function [r, carrier_ppm] = carrier_correct_post_SCH(s, pos_info, oversampling_ratio, carrier_freq)
 disp(' ');
 

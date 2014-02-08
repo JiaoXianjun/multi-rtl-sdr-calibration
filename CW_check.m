@@ -1,4 +1,3 @@
-% function CW_check.m
 % Jiao Xianjun (putaoshu@msn.com; putaoshu@gmail.com)
 % check if there are discontinuous samples in a segment of CW signal
 

@@ -1,3 +1,7 @@
+% Jiao Xianjun (putaoshu@msn.com; putaoshu@gmail.com)
+% Find out FCCH location by moving FFT, peak averaging, Peak-to-Average-Ratio monitoring around a specific location.
+% A script of project: https://github.com/JiaoXianjun/multi-rtl-sdr-calibration
+
 function [hit_flag, hit_idx, hit_snr] = specific_fft_snr_fix_avg(s, target_set, fft_len, th, avg_snr)
 hit_flag = false;
 hit_idx = -1;

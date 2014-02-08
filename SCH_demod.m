@@ -1,3 +1,7 @@
+% Jiao Xianjun (putaoshu@msn.com; putaoshu@gmail.com)
+% GSM SCH demodulator
+% A script of project: https://github.com/JiaoXianjun/multi-rtl-sdr-calibration
+
 function SCH_demod(s, pos_info, training_sequence, oversampling_ratio)
 disp(' ');
 
