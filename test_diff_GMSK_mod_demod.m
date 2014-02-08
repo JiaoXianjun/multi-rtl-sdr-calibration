@@ -13,8 +13,8 @@ hMod = comm.GMSKModulator('BitInput', true, 'BandwidthTimeProduct', BT, 'PulseLe
 
 TracebackDepth = 5;
 
-s_bit = [1 0 1 0 1 0 1 0   1 1 0 1 1];
-gmsk_s_bit = ~abs(diff([0 s_bit]));
+s_bit = [0 1 0 1 1 0 1 0   1 1 0 1 1];
+gmsk_s_bit = ~abs(diff([1 s_bit]));
 disp(num2str(gmsk_s_bit));
 s = step(hMod, gmsk_s_bit.');
 
