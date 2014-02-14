@@ -2,9 +2,10 @@
 % Find out coarse sample index of beginning of GSM FCCH
 % A script of project: https://github.com/JiaoXianjun/multi-rtl-sdr-calibration
 
-function position = FCCH_coarse_position(s, decimation_ratio)
+function [position, snr] = FCCH_coarse_position(s, decimation_ratio)
 disp(' ');
 position = -1;
+snr = -1;
 
 num_sym_per_slot = 625/4;
 num_slot_per_frame = 8;
