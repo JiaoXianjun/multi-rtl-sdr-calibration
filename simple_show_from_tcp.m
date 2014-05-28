@@ -22,7 +22,7 @@
 num_dongle = 1; % more dongles, much faster.
 
 % Beginning of the band you are interested in
-start_freq = 1175.5e6; % for test
+start_freq = 1176.45e6; % for test
 % start_freq = 935e6; % Beginning of Primary GSM-900 Band downlink
 % start_freq = (1575.42-15)*1e6; % GPS L1
 % start_freq = (1207.14-30)*1e6; % COMPASS B2I
@@ -30,7 +30,8 @@ start_freq = 1175.5e6; % for test
 % start_freq = 1.14e9; % Beginning of GNSS(GPS/GLONASS/COMPASS/Galileo) Band
 
 % End of the band you are interested in
-end_freq = 1177.5e6; % for test
+end_freq = start_freq;
+% end_freq = 1177.5e6; % for test
 % end_freq = 960e6; % End of Primary GSM-900 Band downlink
 % end_freq = (1575.42+30)*1e6; % GPS L1
 % end_freq = (1207.14+30)*1e6; % COMPASS B2I
@@ -39,14 +40,14 @@ end_freq = 1177.5e6; % for test
 
 freq_step = 0.05e6; % less step, higher resolution, narrower FIR bandwidth, slower speed
 
-observe_time = 0.1; % observation time at each frequency point. ensure it can capture your signal!
+observe_time = 1; % observation time at each frequency point. ensure it can capture your signal!
 
 RBW = freq_step; % Resolution Bandwidth each time we inspect
 
-gain = 0; % If this is larger than 0, the fixed gain will be set to dongles
+gain = 20; % If this is larger than 0, the fixed gain will be set to dongles
 
 % use high sampling rate and FIR to improve estimation accuracy
-sample_rate = 2.048e6; % sampling rate of dongles
+sample_rate = 2.000e6; % sampling rate of dongles
 
 coef_order = (2^(ceil(log2(sample_rate/RBW))))-1;
 coef_order = min(coef_order, 127);
@@ -152,26 +153,4 @@ disp('Begin process ...');
 % generate power spectrum
 tic;
 r = raw2iq( double( s_all ) ); % remove DC. complex number constructed.
-r_flt = filter(coef, 1, r);% filter target band out
-power_spectrum = mean(abs(r_flt(1:decimate_ratio:end, :)).^2, 1);% get averaged power
-e1 = toc;
-disp(['time cost ' num2str(e1) ' scan/process ' num2str(e/e1)]);
-disp(['total time cost ' num2str(e1+e)]);
-
-% plot power spectrum (converted to dB)
-freq_linear = freq';
-freq_linear = freq_linear(:)';
-figure;
-format_string = {'b.-', 'r.-', 'k.-', 'm.-'};
-for i=1:num_dongle
-    plot(freq(i,:).*1e-6, 10.*log10(power_spectrum( (i-1)*num_freq_per_sub_band+1: i*num_freq_per_sub_band)), format_string{i}); hold on;
-end
-
-legend_string = cell(1, num_dongle);
-for i=1:num_dongle
-    legend_string{i} = ['dongle ' num2str(i)];
-end
-legend(legend_string);
-
-filename = ['split_scan_' num2str(start_freq) '_' num2str(end_freq) '_gain' num2str(gain) '_' num2str(num_dongle) 'dongles.mat'];
-save(filename, 'power_spectrum', 'start_freq', 'end_freq', 'freq_step', 'observe_time', 'RBW', 'gain', 'sample_rate', 'coef', 'freq');
+plot(abs(r), 'r.-');
