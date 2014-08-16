@@ -1,5 +1,7 @@
 multi-rtl-sdr-calibration README
 
+14 Aug. 2014: Losing job. Finding new opportunity!
+
 =======================
 By a enthusiast <putaoshu@msn.com> <putaoshu@gmail.com> of Software Defined Radio.
 
